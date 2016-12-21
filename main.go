@@ -40,6 +40,7 @@ func main() {
 	api.Post("/users/uname", webroutes.SearchByUName)
 	api.Post("/users/alias", webroutes.SearchByAlias)
 	api.Get("/userping/:id", webroutes.ToggleAllowedPing)
+	api.Post("/warn/:userID", webroutes.WarnUser)
 	//api.ListenLETSENCRYPT("127.0.0.1:443")
 	api.Listen(":8080")
 }

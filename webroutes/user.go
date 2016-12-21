@@ -26,6 +26,9 @@ type AliasStruct struct {
 type SearchStruct struct {
 	UserName string `json:"UserName"`
 }
+type WarnStruct struct {
+	WarningText string
+}
 
 func AddUser(ctx *iris.Context) {
 	newUser := &models.User{}
@@ -116,6 +119,7 @@ func ShowUser(ctx *iris.Context) {
 	sessUser := models.GetUserFromContext(ctx)
 	if sessUser == nil {
 		ctx.Redirect("/index.html")
+		return
 	} else {
 		userID, err := ctx.ParamInt64("id")
 		if err != nil {
@@ -137,6 +141,28 @@ func ShowUser(ctx *iris.Context) {
 			outData.UserID = user.ID
 			ctx.Render("userdisplay.html", outData)
 		}
+	}
+}
+func WarnUser(ctx *iris.Context) {
+	sessUser := models.GetUserFromContext(ctx)
+	if sessUser != nil {
+		userID, err := ctx.ParamInt64("userID")
+		if err != nil {
+			fmt.Println("Failed to parse a userID on the warning web route.")
+			ctx.Redirect("/home")
+		}
+		inWarn := WarnStruct{}
+		err = ctx.ReadForm(&inWarn)
+		if err != nil {
+			fmt.Println("Failed to parse a form on the warning web route.")
+			ctx.Redirect("/home")
+			return
+		}
+		models.AddWarningToID(userID, inWarn.WarningText)
+		redir := fmt.Sprintf("/user/%d", userID)
+		ctx.Redirect(redir)
+	} else {
+		ctx.Redirect("/login")
 	}
 }
 func ToggleAllowedPing(ctx *iris.Context) {
