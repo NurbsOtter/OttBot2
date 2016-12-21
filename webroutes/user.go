@@ -57,10 +57,10 @@ func GetLogin(ctx *iris.Context) {
 	}
 	foundUser := models.VerifyUser(strings.Trim(strings.ToLower(newUser.UserName), " "), newUser.Password)
 	if foundUser != nil {
-		ctx.Write("Worked")
 		ctx.Session().Set("userID", foundUser.ID)
+		ctx.Redirect("/home")
 	} else {
-		ctx.Write("Didn't work")
+		ctx.Redirect("/login")
 	}
 }
 func GetLogout(ctx *iris.Context) {
@@ -69,6 +69,9 @@ func GetLogout(ctx *iris.Context) {
 }
 func GetRenderIndex(ctx *iris.Context) {
 	sessUser := models.GetUserFromContext(ctx)
+	if sessUser != nil {
+		ctx.Redirect("/users")
+	}
 	outStruct := BareMinRender{LoggedIn: sessUser != nil}
 	ctx.Render("login.html", outStruct)
 }

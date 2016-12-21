@@ -33,6 +33,7 @@ func main() {
 	api.Get("/", webroutes.ServeIndex)
 	api.Post("/register", webroutes.AddUser)
 	api.Get("/login", webroutes.GetRenderIndex)
+	api.Get("/home", webroutes.GetRenderIndex)
 	api.Get("/logout", webroutes.GetLogout)
 	api.Post("/login", webroutes.GetLogin)
 	api.Get("/user/:id", webroutes.ShowUser)
