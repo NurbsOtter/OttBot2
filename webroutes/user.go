@@ -1,0 +1,134 @@
+package webroutes
+
+import (
+	"OttBot2/models"
+	"fmt"
+	"github.com/kataras/iris"
+	"strings"
+)
+
+type BareMinRender struct {
+	LoggedIn bool
+}
+type UserOutStruct struct {
+	Name     string
+	LoggedIn bool
+	Warnings []models.Warning
+	Aliases  []models.UserAlias
+}
+type AliasStruct struct {
+	LoggedIn bool
+	NotFound bool
+	Aliases  []models.UserAlias
+}
+type SearchStruct struct {
+	UserName string `json:"UserName"`
+}
+
+func AddUser(ctx *iris.Context) {
+	newUser := &models.User{}
+	err := ctx.ReadJSON(&newUser)
+	if err != nil {
+		panic(err)
+	}
+	if (newUser.UserName == "") || (newUser.Password == "") {
+		ctx.Write("You suck ass!")
+	} else {
+		if models.InsertUser(strings.Trim(strings.ToLower(newUser.UserName), " "), newUser.Password) {
+			ctx.Write("Worked!")
+		} else {
+			ctx.Write("Username Taken")
+		}
+	}
+}
+func ServeIndex(ctx *iris.Context) {
+	ctx.ServeFile("./static/index.html", false)
+}
+func GetLogin(ctx *iris.Context) {
+	newUser := models.User{}
+	err := ctx.ReadForm(&newUser)
+	if err != nil {
+		panic(err)
+	}
+	foundUser := models.VerifyUser(strings.Trim(strings.ToLower(newUser.UserName), " "), newUser.Password)
+	if foundUser != nil {
+		ctx.Write("Worked")
+		ctx.Session().Set("userID", foundUser.ID)
+	} else {
+		ctx.Write("Didn't work")
+	}
+}
+func GetLogout(ctx *iris.Context) {
+	ctx.Session().Clear()
+	ctx.Redirect("/login")
+}
+func GetRenderIndex(ctx *iris.Context) {
+	sessUser := models.GetUserFromContext(ctx)
+	outStruct := BareMinRender{LoggedIn: sessUser != nil}
+	ctx.Render("login.html", outStruct)
+}
+func RenderSearchPage(ctx *iris.Context) {
+	sessUser := models.GetUserFromContext(ctx)
+	userOutStruct := BareMinRender{LoggedIn: sessUser != nil}
+	if sessUser != nil {
+		ctx.Render("searchusers.html", userOutStruct)
+	} else {
+		ctx.Redirect("/")
+	}
+}
+func SearchByUName(ctx *iris.Context) {
+	sessUser := models.GetUserFromContext(ctx)
+	if sessUser != nil {
+		foundSearch := SearchStruct{}
+		ctx.ReadForm(&foundSearch)
+		foundSearch.UserName = strings.ToLower(foundSearch.UserName)
+		foundSearch.UserName = strings.Trim(foundSearch.UserName, " ")
+		user := models.SearchUserByUsername(foundSearch.UserName)
+		if user == nil {
+			ctx.Redirect("/users")
+		} else {
+			outString := fmt.Sprintf("/user/%d", user.ID)
+			ctx.Redirect(outString)
+		}
+
+	}
+}
+func SearchByAlias(ctx *iris.Context) {
+	sessUser := models.GetUserFromContext(ctx)
+	if sessUser != nil {
+		foundSearch := AliasStruct{}
+		foundSearch.LoggedIn = true
+		aliasSearch := SearchStruct{}
+		ctx.ReadForm(&aliasSearch)
+		aliases := models.SearchAliases(aliasSearch.UserName)
+		if len(aliases) == 0 {
+			foundSearch.NotFound = true
+		} else {
+			foundSearch.Aliases = aliases
+			foundSearch.NotFound = false
+		}
+		ctx.Render("searchalias.html", foundSearch)
+	}
+}
+func ShowUser(ctx *iris.Context) {
+	sessUser := models.GetUserFromContext(ctx)
+	if sessUser == nil {
+		ctx.Redirect("/index.html")
+	} else {
+		userID, err := ctx.ParamInt64("id")
+		if err != nil {
+			panic(err)
+		}
+		user := models.ChatUserFromID(userID)
+		if user == nil {
+			ctx.WriteString("Not found") //Todo proper handler.
+		} else {
+			outData := UserOutStruct{}
+			outData.Name = user.UserName
+			outData.LoggedIn = true
+			outData.Warnings = models.GetUsersWarnings(user)
+			outData.Aliases = user.GetAliases()
+			ctx.Render("userdisplay.html", outData)
+		}
+	}
+}

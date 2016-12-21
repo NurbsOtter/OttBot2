@@ -1,0 +1,25 @@
+<div class="col-md-6">
+<div class="row">
+<form action="/users/uname" method="post" class="form-inline">
+	<div class="form-group">
+		<label for="unameSearch">Search by Username(Exact)</label>
+		<div class="input-group">
+			<div class="input-group-addon" id="tinyat">@</div>
+			<input type="text" name="UserName" id="unameSearch" placeholder="Username" class="form-control"></input>
+		</div>
+		
+		<button type="submit" class="btn btn-primary">Search</button>
+	</div>
+		
+</form>
+<form action="/users/alias" method="post" class="form-inline">
+	<div class="form-group">
+		<label for="aliasSearch">Search By Alias</label>
+		<div class="input-group">
+			<input type="text" name="UserName" id="aliasSearch" placeholder="Alias" class="form-control">			
+		</div>
+		<button type="submit" class="btn btn-primary">Search</button>
+	</div>
+</form>
+</div>
+</div>

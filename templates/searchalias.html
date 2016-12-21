@@ -1,0 +1,24 @@
+<div class="row">
+<div class="col-md-3">
+</div>
+<div class="col-md-6">
+	{{if .NotFound}}
+	<h1>No results</h1>
+	{{else}}
+	<table class="table table-striped">
+		<tr>
+			<th>Alias</th>
+			<th>User Page</th>
+		</tr>
+		{{range .Aliases}}
+			<tr>
+				<td>{{.Name}}</td>
+				<td><a href="/user/{{.UserID}}">Link</a></td>
+			</tr>
+		{{end}}
+	</table>
+	{{end}}
+</div>
+<div class="col-md-3">
+</div>
+</div>
