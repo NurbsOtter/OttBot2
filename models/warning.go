@@ -26,6 +26,9 @@ func AddWarningToUsername(userName string, warnText string) {
 	}
 	stmt.Exec(user.ID, warnText, time.Now())
 }
+func AddWarningToID(userID int64, warnText string) {
+	db.Exec("INSERT INTO warning(userID,warningText,warnDate) VALUES(?,?,?)", userID, warnText, time.Now())
+}
 func GetUsersWarnings(userIn *ChatUser) []Warning {
 	stmt, err := db.Prepare("SELECT warningText,warnDate FROM warning WHERE userID = ?")
 	if err != nil {

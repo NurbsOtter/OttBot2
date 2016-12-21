@@ -56,6 +56,23 @@ func ChatUserFromTGID(tgID int, userName string) *ChatUser {
 	}
 	return foundUser
 }
+func ChatUserFromTGIDNoUpd(tgID int) *ChatUser {
+	stmt, err := db.Prepare("SELECT id,userName,tgID,pingAllowed FROM chatUser WHERE tgID = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+	foundUser := &ChatUser{}
+	err = stmt.QueryRow(tgID).Scan(&foundUser.ID, &foundUser.UserName, &foundUser.TgID, &foundUser.PingAllowed)
+	switch {
+	case err == sql.ErrNoRows:
+		return nil
+	case err != nil:
+		panic(err)
+	default:
+	}
+	return foundUser
+}
 func UpdateAliases(firstName string, lastName string, userID int64) {
 	insName := firstName + " " + lastName
 	stmt, err := db.Prepare("SELECT name FROM aliases WHERE name = ?")

@@ -5,6 +5,7 @@ import (
 	"OttBot2/settings"
 	"fmt"
 	"gopkg.in/telegram-bot-api.v4"
+	"strconv"
 	"strings"
 )
 
@@ -35,15 +36,45 @@ func FindUserByUsername(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	}
 
 }
+func SummonMods(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	if upd.Message.Chat.ID == settings.GetChannelID() {
+		//Double checks never hurt.
+		user := models.ChatUserFromTGID(upd.Message.From.ID, upd.Message.From.UserName)
+		if user.PingAllowed {
+			newFwd := tgbotapi.NewForward(settings.GetControlID(), upd.Message.Chat.ID, upd.Message.MessageID)
+			bot.Send(newFwd)
+			newMsg := tgbotapi.NewMessage(upd.Message.Chat.ID, "Summoning mods!")
+			bot.Send(newMsg)
+		} else {
+			newMsg := tgbotapi.NewMessage(upd.Message.Chat.ID, "Sorry you were banned from /mods")
+			bot.Send(newMsg)
+		}
+	}
+}
 func WarnUserByUsername(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	if upd.Message.Chat.ID == settings.GetControlID() {
 		procString := upd.Message.Text[7:] //Remove the /warn @
-		procString = strings.TrimLeft(procString, "cutset")
+		procString = strings.TrimLeft(procString, " ")
 		userName := strings.Split(procString, " ")[0]
 		userName = strings.ToLower(userName)
 		message := procString[len(userName)+1:]
 		models.AddWarningToUsername(userName, message)
 		newMess := tgbotapi.NewMessage(settings.GetControlID(), "Warned "+userName)
+		bot.Send(newMess)
+	}
+}
+func WarnUserByID(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	if upd.Message.Chat.ID == settings.GetControlID() {
+		procString := upd.Message.Text[6:] //Remove the /warn
+		procString = strings.TrimLeft(procString, " ")
+		userID, err := strconv.ParseInt(strings.Split(procString, " ")[0], 10, 64)
+		if err != nil {
+			fmt.Println("Failed to parse a tgid from /warn")
+			return
+		}
+		models.AddWarningToID(userID, procString[len(strings.Split(procString, " ")[0])+1:])
+		outMsg := fmt.Sprintf("Warned %d", userID)
+		newMess := tgbotapi.NewMessage(settings.GetControlID(), outMsg)
 		bot.Send(newMess)
 	}
 }
@@ -58,7 +89,7 @@ func LookupAlias(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		} else {
 			outString := "Search Results (Capped at 20!):\n"
 			for _, user := range foundAliases {
-				outString += fmt.Sprintf("UserName: @%s TelegramID: %d\n", user.UserName, user.TgID)
+				outString += fmt.Sprintf("UserName: @%s UserID: %d\n", user.UserName, user.ID)
 			}
 			outMsg := tgbotapi.NewMessage(settings.GetControlID(), outString)
 			bot.Send(outMsg)

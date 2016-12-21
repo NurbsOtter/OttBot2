@@ -20,6 +20,9 @@ func main() {
 	telegram.Register("^\\/info @.+", settings.GetControlID(), telegram.FindUserByUsername)
 	telegram.Register("^\\/warn @.+", settings.GetControlID(), telegram.WarnUserByUsername)
 	telegram.Register("^\\/find .+", settings.GetControlID(), telegram.LookupAlias)
+	telegram.Register("^\\/mods", settings.GetChannelID(), telegram.SummonMods)
+	telegram.Register("^\\/warn \\d+", settings.GetControlID(), telegram.WarnUserByID)
+
 	go telegram.InitBot(settings.GetBotToken())
 	api := iris.New()
 	api.StaticServe("./static/")
