@@ -4,6 +4,13 @@
 	<div class="col-md-6">
 		<h1>@{{.Name}}</h1>
 		<div class="row">
+			{{if .PingAllowed}}
+			<h2>Allowed to use /mods</h2><a href="/userping/{{.UserID}}"><button class="btn btn-primary">Toggle</button></a>
+			{{else}}
+				<h2>Not Allowed to use /mods</h2><a href="/userping/{{.UserID}}"><button class="btn btn-primary">Toggle</button></a>
+			{{end}}
+		</div>
+		<div class="row">
 		<h2>Warnings</h2>
 		<table class="table table-striped">
 			<tr><th>Warning</th><th>Date</th></tr>

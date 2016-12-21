@@ -11,10 +11,12 @@ type BareMinRender struct {
 	LoggedIn bool
 }
 type UserOutStruct struct {
-	Name     string
-	LoggedIn bool
-	Warnings []models.Warning
-	Aliases  []models.UserAlias
+	Name        string
+	LoggedIn    bool
+	UserID      int64
+	PingAllowed bool
+	Warnings    []models.Warning
+	Aliases     []models.UserAlias
 }
 type AliasStruct struct {
 	LoggedIn bool
@@ -117,18 +119,44 @@ func ShowUser(ctx *iris.Context) {
 	} else {
 		userID, err := ctx.ParamInt64("id")
 		if err != nil {
-			panic(err)
+			fmt.Println("Failed to parse a route")
+			ctx.Redirect("/")
+			return
 		}
 		user := models.ChatUserFromID(userID)
 		if user == nil {
 			ctx.WriteString("Not found") //Todo proper handler.
 		} else {
+			fmt.Println(user)
 			outData := UserOutStruct{}
 			outData.Name = user.UserName
 			outData.LoggedIn = true
 			outData.Warnings = models.GetUsersWarnings(user)
 			outData.Aliases = user.GetAliases()
+			outData.PingAllowed = user.PingAllowed
+			outData.UserID = user.ID
 			ctx.Render("userdisplay.html", outData)
+		}
+	}
+}
+func ToggleAllowedPing(ctx *iris.Context) {
+	sessUser := models.GetUserFromContext(ctx)
+	if sessUser == nil {
+		ctx.Redirect("/login")
+	} else {
+		userID, err := ctx.ParamInt64("id")
+		if err != nil {
+			fmt.Println("Failed to parse a route")
+			ctx.Redirect("/")
+			return
+		}
+		user := models.ChatUserFromID(userID)
+		if user == nil {
+			ctx.WriteString("This is a false user. \nWhy for you do this. :(")
+		} else {
+			user.ToggleModPing()
+			redir := fmt.Sprintf("/user/%d", user.ID)
+			ctx.Redirect(redir)
 		}
 	}
 }

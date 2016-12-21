@@ -22,7 +22,7 @@ type UserAlias struct {
 
 func ChatUserFromID(inID int64) *ChatUser {
 	newUser := &ChatUser{}
-	err := db.QueryRow("SELECT id,userName,tgID FROM chatUser WHERE id = ?", inID).Scan(&newUser.ID, &newUser.UserName, &newUser.TgID)
+	err := db.QueryRow("SELECT id,userName,tgID,pingAllowed FROM chatUser WHERE id = ?", inID).Scan(&newUser.ID, &newUser.UserName, &newUser.TgID, &newUser.PingAllowed)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil
@@ -178,4 +178,11 @@ func SearchAliases(query string) []UserAlias {
 		outAliases = append(outAliases, newAlias)
 	}
 	return outAliases
+}
+func (u *ChatUser) ToggleModPing() {
+	newRights := !u.PingAllowed
+	_, err := db.Exec("UPDATE chatUser SET pingAllowed=? WHERE id=?", newRights, u.ID)
+	if err != nil {
+		panic(err)
+	}
 }
