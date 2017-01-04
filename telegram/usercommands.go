@@ -86,7 +86,13 @@ func LookupAlias(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		} else {
 			outString := "Search Results (Capped at 20!):\n"
 			for _, user := range foundAliases {
-				outString += fmt.Sprintf("UserName: @%s UserID: %d\n", user.UserName, user.ID)
+				latestAlias := models.GetLatestAliasFromUserID(user.ID)
+				if latestAlias == nil {
+					outString += fmt.Sprintf("UserName: @%s UserID: %d\n", user.UserName, user.ID)
+				} else {
+					outString += fmt.Sprintf("UserName: @%s UserID: %d Latest Alias: %s\n", user.UserName, user.ID, latestAlias.Name)
+				}
+
 			}
 			outMsg := tgbotapi.NewMessage(settings.GetControlID(), outString)
 			bot.Send(outMsg)
