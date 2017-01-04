@@ -30,3 +30,4 @@ _testmain.go
 vendor/
 //OttBot2 Specific
 settings.json
+*.sublime-*
