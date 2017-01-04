@@ -31,3 +31,4 @@ vendor/
 //OttBot2 Specific
 settings.json
 *.sublime-*
+*.db*
