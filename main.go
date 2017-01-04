@@ -22,6 +22,9 @@ func main() {
 	telegram.Register("^\\/find .+", settings.GetControlID(), telegram.LookupAlias)
 	telegram.Register("^\\/mods", 0, telegram.SummonMods)
 	telegram.Register("^\\/warn \\d+", settings.GetControlID(), telegram.WarnUserByID)
+	telegram.Register("^\\/ban \\d+", settings.GetControlID(), telegram.SetBanTarget)
+	telegram.Register("^\\/yes", settings.GetControlID(), telegram.ApplyBannination)
+	telegram.Register("^\\/no", settings.GetControlID(), telegram.ClearBotTarget)
 
 	go telegram.InitBot(settings.GetBotToken())
 	api := iris.New()
