@@ -9,6 +9,8 @@ import (
 	"strings"
 )
 
+var BotTarget *models.ChatUser
+
 func HandleUsers(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	foundUser := models.ChatUserFromTGID(upd.Message.From.ID, upd.Message.From.UserName)
 	models.UpdateAliases(upd.Message.From.FirstName, upd.Message.From.LastName, foundUser.ID)
@@ -97,5 +99,49 @@ func LookupAlias(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 			outMsg := tgbotapi.NewMessage(settings.GetControlID(), outString)
 			bot.Send(outMsg)
 		}
+	}
+}
+func SetBanTarget(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	if upd.Message.Chat.ID == settings.GetControlID() {
+		procString := upd.Message.Text[5:]
+		procString = strings.Trim(procString, " ")
+		userID, err := strconv.ParseInt(strings.Split(procString, " ")[0], 10, 64)
+		if err != nil {
+			fmt.Println("Failed to parse a tgid from /warn")
+			return
+		}
+		foundUser := models.ChatUserFromID(userID)
+		if foundUser != nil {
+			BotTarget = foundUser
+			alias := models.GetLatestAliasFromUserID(foundUser.ID)
+			var outMsg string
+			if alias != nil {
+				outMsg = fmt.Sprintf("Banning user %s\n/yes to confirm", alias.Name)
+			} else {
+				outMsg = fmt.Sprintf("Banning user %s\n/yes to confirm", foundUser.ID)
+			}
+			msg := tgbotapi.NewMessage(settings.GetControlID(), outMsg)
+			bot.Send(msg)
+			fmt.Println(BotTarget)
+		} else {
+			msg := tgbotapi.NewMessage(settings.GetControlID(), "User not found!")
+			bot.Send(msg)
+		}
+	}
+}
+func ApplyBannination(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	if upd.Message.Chat.ID == settings.GetControlID() && BotTarget != nil {
+		banConfig := tgbotapi.ChatMemberConfig{}
+		banConfig.ChatID = settings.GetChannelID()
+		banConfig.UserID = int(BotTarget.TgID)
+		BotTarget = nil
+		bot.KickChatMember(banConfig)
+	}
+}
+func ClearBotTarget(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	if upd.Message.Chat.ID == settings.GetControlID() && BotTarget != nil {
+		BotTarget = nil
+		outMsg := tgbotapi.NewMessage(settings.GetControlID(), "Cleared the ban target.\n\n :(")
+		bot.Send(outMsg)
 	}
 }

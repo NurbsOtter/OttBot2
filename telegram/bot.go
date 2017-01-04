@@ -50,6 +50,7 @@ func InitBot(botToken string) {
 	bot.Debug = false
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
+	BotTarget = nil
 	updates, err := bot.GetUpdatesChan(u)
 	if err != nil {
 		panic(err)
