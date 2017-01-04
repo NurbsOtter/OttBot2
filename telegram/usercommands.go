@@ -37,18 +37,15 @@ func FindUserByUsername(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 
 }
 func SummonMods(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
-	if upd.Message.Chat.ID == settings.GetChannelID() {
-		//Double checks never hurt.
-		user := models.ChatUserFromTGID(upd.Message.From.ID, upd.Message.From.UserName)
-		if user.PingAllowed {
-			newFwd := tgbotapi.NewForward(settings.GetControlID(), upd.Message.Chat.ID, upd.Message.MessageID)
-			bot.Send(newFwd)
-			newMsg := tgbotapi.NewMessage(upd.Message.Chat.ID, "Summoning mods!")
-			bot.Send(newMsg)
-		} else {
-			newMsg := tgbotapi.NewMessage(upd.Message.Chat.ID, "Sorry you were banned from /mods")
-			bot.Send(newMsg)
-		}
+	user := models.ChatUserFromTGID(upd.Message.From.ID, upd.Message.From.UserName)
+	if user.PingAllowed {
+		newFwd := tgbotapi.NewForward(settings.GetControlID(), upd.Message.Chat.ID, upd.Message.MessageID)
+		bot.Send(newFwd)
+		newMsg := tgbotapi.NewMessage(upd.Message.Chat.ID, "Summoning mods!")
+		bot.Send(newMsg)
+	} else {
+		newMsg := tgbotapi.NewMessage(upd.Message.Chat.ID, "Sorry you were banned from /mods")
+		bot.Send(newMsg)
 	}
 }
 func WarnUserByUsername(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {

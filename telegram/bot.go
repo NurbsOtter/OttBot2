@@ -36,7 +36,9 @@ func ProcessMessage(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	}
 	for _, cmd := range commands {
 		if cmd.MatchCmd.Match([]byte(message)) {
-			cmd.HandleFunc(upd, bot)
+			if cmd.Chan == upd.Message.Chat.ID || cmd.Chan == 0 {
+				cmd.HandleFunc(upd, bot)
+			}
 		}
 	}
 }
