@@ -39,38 +39,45 @@ func FindUserByUsername(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 
 }
 func FindUserByUserID(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
-	if upd.Message.Chat.ID == settings.GetControlID() {
-		userName := upd.Message.Text[5:]
+	var userName string
+	if upd.Message == nil {
+		userName = upd.CallbackQuery.Data[5:]
+		config := tgbotapi.NewCallback(upd.CallbackQuery.ID, "") //We don't need this so get it outta da way.
+		bot.AnswerCallbackQuery(config)
+	} else {
+		userName = upd.Message.Text[5:]
+	}
+	fmt.Println(userName)
+	userName = strings.Trim(userName, " ")
+	usrID, err := strconv.ParseInt(userName, 10, 64)
+	if err != nil {
+		newMsg := tgbotapi.NewMessage(upd.Message.Chat.ID, "Error parsing userID. Make sure it's an actual number!")
 		fmt.Println(userName)
-		userName = strings.Trim(userName, " ")
-		usrID, err := strconv.ParseInt(userName, 10, 64)
-		if err != nil {
-			newMsg := tgbotapi.NewMessage(upd.Message.Chat.ID, "Error parsing userID. Make sure it's an actual number!")
-			fmt.Println(userName)
-			fmt.Println(err)
-			bot.Send(newMsg)
-			return
+		fmt.Println(err)
+		bot.Send(newMsg)
+		return
+	}
+	user := models.ChatUserFromID(usrID)
+	if user != nil {
+		curAlias := models.GetLatestAliasFromUserID(user.ID)
+		fmt.Println(user)
+		outmsg := fmt.Sprintf("UserID: %d\nCurrent Name:%s\n", user.TgID, curAlias.Name)
+		for _, warn := range models.GetUsersWarnings(user) {
+			outmsg += warn.WarningText + "\n"
 		}
-		user := models.ChatUserFromID(usrID)
-		if user != nil {
-			curAlias := models.GetLatestAliasFromUserID(user.ID)
-			fmt.Println(user)
-			outmsg := fmt.Sprintf("UserID: %d\nCurrent Name:%s\n", user.TgID, curAlias.Name)
-			for _, warn := range models.GetUsersWarnings(user) {
-				outmsg += warn.WarningText + "\n"
-			}
-			newMsg := tgbotapi.NewMessage(settings.GetControlID(), outmsg)
-			bot.Send(newMsg)
-		} else {
-			newMsg := tgbotapi.NewMessage(settings.GetControlID(), "User not found.")
-			bot.Send(newMsg)
-		}
+		newMsg := tgbotapi.NewMessage(settings.GetControlID(), outmsg)
+		bot.Send(newMsg)
+	} else {
+		newMsg := tgbotapi.NewMessage(settings.GetControlID(), "User not found.")
+		bot.Send(newMsg)
 	}
 }
 func MakeAliasInlineKeyboard(aliases []models.ChatUser) tgbotapi.InlineKeyboardMarkup {
 	var aliasButtons []tgbotapi.InlineKeyboardButton
 	for _, alias := range aliases {
-		newButt := tgbotapi.NewInlineKeyboardButtonData(alias.UserName, "/info "+string(alias.ID))
+		latestID := models.GetLatestAliasFromUserID(alias.ID)
+		btnCmd := fmt.Sprintf("/info %d", alias.ID)
+		newButt := tgbotapi.NewInlineKeyboardButtonData(latestID.Name, btnCmd)
 		aliasButtons = append(aliasButtons, newButt)
 	}
 	return tgbotapi.NewInlineKeyboardMarkup(aliasButtons)

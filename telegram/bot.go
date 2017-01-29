@@ -8,6 +8,7 @@ import (
 
 var bot *tgbotapi.BotAPI
 var commands []*BotCommand
+var callbacks []*BotCommand
 
 type BotCommand struct {
 	MatchCmd   *regexp.Regexp
@@ -29,6 +30,15 @@ func Register(regexIn string, chanIn int64, handleFunc func(tgbotapi.Update, *tg
 	newCommand.HandleFunc = handleFunc
 	commands = append(commands, newCommand)
 }
+func RegisterCallback(regexIn string, handleFunc func(tgbotapi.Update, *tgbotapi.BotAPI)) {
+	if callbacks == nil {
+		callbacks = []*BotCommand{}
+	}
+	newCallback := &BotCommand{}
+	newCallback.MatchCmd = regexp.MustCompile(regexIn)
+	newCallback.HandleFunc = handleFunc
+	callbacks = append(callbacks, newCallback)
+}
 func ProcessMessage(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	message := upd.Message.Text
 	if message == "" {
@@ -39,6 +49,17 @@ func ProcessMessage(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 			if cmd.Chan == upd.Message.Chat.ID || cmd.Chan == 0 {
 				cmd.HandleFunc(upd, bot)
 			}
+		}
+	}
+}
+func ProcessCallback(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	data := upd.CallbackQuery.Data
+	if data == "" {
+		return
+	}
+	for _, cback := range callbacks {
+		if cback.MatchCmd.Match([]byte(data)) {
+			cback.HandleFunc(upd, bot)
 		}
 	}
 }
@@ -56,10 +77,21 @@ func InitBot(botToken string) {
 		panic(err)
 	}
 	for update := range updates {
-		if update.Message == nil {
+
+		if update.Message != nil {
+			fmt.Println("Message")
+			fmt.Println(update.Message.Chat.ID)
+			ProcessMessage(update, bot)
+		} else if update.CallbackQuery != nil {
+			fmt.Println("Cback")
+			fmt.Println("Callback handled: " + update.CallbackQuery.Data)
+			ProcessCallback(update, bot)
+			//config := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
+			//fmt.Println(update.CallbackQuery.Data)
+			//bot.AnswerCallbackQuery(config)
+		} else {
 			continue
 		}
-		fmt.Println(update.Message.Chat.ID)
-		ProcessMessage(update, bot)
+
 	}
 }

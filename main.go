@@ -26,6 +26,7 @@ func main() {
 	telegram.Register("^\\/yes", settings.GetControlID(), telegram.ApplyBannination)
 	telegram.Register("^\\/no", settings.GetControlID(), telegram.ClearBotTarget)
 	telegram.Register("^\\/info \\d+", settings.GetControlID(), telegram.FindUserByUserID)
+	telegram.RegisterCallback("^\\/info \\d+", telegram.FindUserByUserID)
 	go telegram.InitBot(settings.GetBotToken())
 	api := iris.New()
 	api.StaticServe("./static/")
