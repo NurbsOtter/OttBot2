@@ -35,7 +35,9 @@ func main() {
 	})).Directory("./templates", ".html")
 	api.Config.IsDevelopment = true
 	api.Get("/", webroutes.ServeIndex)
-	api.Post("/register", webroutes.AddUser)
+	if settings.IsRegistrationAllowed() {
+		api.Post("/register", webroutes.AddUser)
+	}
 	api.Get("/login", webroutes.GetRenderIndex)
 	api.Get("/home", webroutes.GetRenderIndex)
 	api.Get("/logout", webroutes.GetLogout)
