@@ -141,7 +141,7 @@ func LookupAlias(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 
 			}
 			outMsg := tgbotapi.NewMessage(settings.GetControlID(), outString)*/
-			outMsg := tgbotapi.NewMessage(settings.GetControlID(), "Fancytest")
+			outMsg := tgbotapi.NewMessage(settings.GetControlID(), "Found Users:")
 			outMsg.ReplyMarkup = MakeAliasInlineKeyboard(foundAliases)
 			bot.Send(outMsg)
 		}
