@@ -17,7 +17,7 @@ func main() {
 	settings.LoadSettings()
 	telegram.Register("\\/ping", settings.GetChannelID(), telegram.TestCmd)
 	telegram.Register(".*", settings.GetChannelID(), telegram.HandleUsers)
-	telegram.Register("^\\/info @.+", settings.GetControlID(), telegram.FindUserByUsername)
+	telegram.Register("^\\/info @\\D+", settings.GetControlID(), telegram.FindUserByUsername)
 	telegram.Register("^\\/warn @.+", settings.GetControlID(), telegram.WarnUserByUsername)
 	telegram.Register("^\\/find .+", settings.GetControlID(), telegram.LookupAlias)
 	telegram.Register("^\\/mods", 0, telegram.SummonMods)
@@ -25,7 +25,8 @@ func main() {
 	telegram.Register("^\\/ban \\d+", settings.GetControlID(), telegram.SetBanTarget)
 	telegram.Register("^\\/yes", settings.GetControlID(), telegram.ApplyBannination)
 	telegram.Register("^\\/no", settings.GetControlID(), telegram.ClearBotTarget)
-
+	telegram.Register("^\\/info \\d+", settings.GetControlID(), telegram.FindUserByUserID)
+	telegram.RegisterCallback("^\\/info \\d+", telegram.FindUserByUserID)
 	go telegram.InitBot(settings.GetBotToken())
 	api := iris.New()
 	api.StaticServe("./static/")
@@ -34,7 +35,9 @@ func main() {
 	})).Directory("./templates", ".html")
 	api.Config.IsDevelopment = true
 	api.Get("/", webroutes.ServeIndex)
-	api.Post("/register", webroutes.AddUser)
+	if settings.IsRegistrationAllowed() {
+		api.Post("/register", webroutes.AddUser)
+	}
 	api.Get("/login", webroutes.GetRenderIndex)
 	api.Get("/home", webroutes.GetRenderIndex)
 	api.Get("/logout", webroutes.GetLogout)

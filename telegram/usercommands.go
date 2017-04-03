@@ -38,6 +38,50 @@ func FindUserByUsername(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	}
 
 }
+func FindUserByUserID(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	var userName string
+	if upd.Message == nil {
+		userName = upd.CallbackQuery.Data[5:]
+		config := tgbotapi.NewCallback(upd.CallbackQuery.ID, "") //We don't need this so get it outta da way.
+		bot.AnswerCallbackQuery(config)
+	} else {
+		userName = upd.Message.Text[5:]
+	}
+	fmt.Println(userName)
+	userName = strings.Trim(userName, " ")
+	usrID, err := strconv.ParseInt(userName, 10, 64)
+	if err != nil {
+		newMsg := tgbotapi.NewMessage(upd.Message.Chat.ID, "Error parsing userID. Make sure it's an actual number!")
+		fmt.Println(userName)
+		fmt.Println(err)
+		bot.Send(newMsg)
+		return
+	}
+	user := models.ChatUserFromID(usrID)
+	if user != nil {
+		curAlias := models.GetLatestAliasFromUserID(user.ID)
+		fmt.Println(user)
+		outmsg := fmt.Sprintf("UserID: %d\nCurrent Name:%s\n", user.TgID, curAlias.Name)
+		for _, warn := range models.GetUsersWarnings(user) {
+			outmsg += warn.WarningText + "\n"
+		}
+		newMsg := tgbotapi.NewMessage(settings.GetControlID(), outmsg)
+		bot.Send(newMsg)
+	} else {
+		newMsg := tgbotapi.NewMessage(settings.GetControlID(), "User not found.")
+		bot.Send(newMsg)
+	}
+}
+func MakeAliasInlineKeyboard(aliases []models.ChatUser) tgbotapi.InlineKeyboardMarkup {
+	var aliasButtons []tgbotapi.InlineKeyboardButton
+	for _, alias := range aliases {
+		latestID := models.GetLatestAliasFromUserID(alias.ID)
+		btnCmd := fmt.Sprintf("/info %d", alias.ID)
+		newButt := tgbotapi.NewInlineKeyboardButtonData(latestID.Name, btnCmd)
+		aliasButtons = append(aliasButtons, newButt)
+	}
+	return tgbotapi.NewInlineKeyboardMarkup(aliasButtons)
+}
 func SummonMods(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	user := models.ChatUserFromTGID(upd.Message.From.ID, upd.Message.From.UserName)
 	if user.PingAllowed {
@@ -86,8 +130,8 @@ func LookupAlias(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 			outMsg := tgbotapi.NewMessage(settings.GetControlID(), "No Aliases found")
 			bot.Send(outMsg)
 		} else {
-			outString := "Search Results (Capped at 20!):\n"
-			for _, user := range foundAliases {
+			//outString := "Search Results (Capped at 20!):\n"
+			/*for _, user := range foundAliases {
 				latestAlias := models.GetLatestAliasFromUserID(user.ID)
 				if latestAlias == nil {
 					outString += fmt.Sprintf("UserName: @%s UserID: %d\n", user.UserName, user.ID)
@@ -96,7 +140,9 @@ func LookupAlias(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 				}
 
 			}
-			outMsg := tgbotapi.NewMessage(settings.GetControlID(), outString)
+			outMsg := tgbotapi.NewMessage(settings.GetControlID(), outString)*/
+			outMsg := tgbotapi.NewMessage(settings.GetControlID(), "Found Users:")
+			outMsg.ReplyMarkup = MakeAliasInlineKeyboard(foundAliases)
 			bot.Send(outMsg)
 		}
 	}

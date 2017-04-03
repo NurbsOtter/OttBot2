@@ -6,9 +6,11 @@ import (
 )
 
 type Settings struct {
-	BotToken         string
-	ChannelID        int64
-	ControlChannelID int64
+	BotToken           string
+	ChannelID          int64
+	ControlChannelID   int64
+	AllowReg           bool
+	EightBallResponses []string
 }
 
 var settings Settings
@@ -26,10 +28,13 @@ func LoadSettings() {
 func GetBotToken() string {
 	return settings.BotToken
 }
-
 func GetChannelID() int64 {
 	return settings.ChannelID
 }
 func GetControlID() int64 {
 	return settings.ControlChannelID
+}
+
+func IsRegistrationAllowed() bool {
+	return settings.AllowReg
 }
