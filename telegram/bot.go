@@ -79,8 +79,9 @@ func InitBot(botToken string) {
 	for update := range updates {
 
 		if update.Message != nil {
-			fmt.Println("Message")
-			fmt.Println(update.Message.Chat.ID)
+			outLog := fmt.Sprintf("Message: %s %s>%s", update.Message.From.FirstName, update.Message.From.LastName, update.Message.Text)
+			fmt.Println(outLog)
+			//fmt.Println(update.Message.Chat.ID)
 			ProcessMessage(update, bot)
 		} else if update.CallbackQuery != nil {
 			fmt.Println("Cback")
