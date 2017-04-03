@@ -54,6 +54,13 @@ func ChatUserFromTGID(tgID int, userName string) *ChatUser {
 		panic(err)
 	default:
 	}
+	if foundUser.UserName != userName { //THey've changed their username! Update it!
+		_, err := db.Exec("UPDATE chatUser SET userName = ? WHERE tgID = ?", userName, foundUser.TgID)
+		if err != nil {
+			fmt.Println("Failed to change tgID " + string(foundUser.TgID))
+		}
+		foundUser.UserName = userName
+	}
 	return foundUser
 }
 func ChatUserFromTGIDNoUpd(tgID int) *ChatUser {
