@@ -2,13 +2,13 @@ package models
 
 import (
 	"database/sql"
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 var db *sql.DB
 
-func MakeDB(dbFile string) {
-	newDb, err := sql.Open("sqlite3", "file:"+dbFile+"?loc=auto")
+func MakeDB(dbConnectString string) {
+	newDb, err := sql.Open("mysql", dbConnectString)
 	if err != nil {
 		panic(err)
 	}

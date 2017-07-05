@@ -5,16 +5,12 @@ import (
 	"OttBot2/settings"
 	"OttBot2/telegram"
 	"OttBot2/webroutes"
-	"github.com/kataras/go-template/html"
-	"github.com/kataras/iris"
+	"gopkg.in/gin-gonic/gin.v1"
 )
 
-func hello(ctx *iris.Context) {
-	ctx.Write("Hello world!")
-}
 func main() {
-	models.MakeDB("./userdatabase.db")
 	settings.LoadSettings()
+	models.MakeDB(settings.GetDBAddr())
 	telegram.Register("\\/ping", settings.GetChannelID(), telegram.TestCmd)
 	telegram.Register(".*", settings.GetChannelID(), telegram.HandleUsers)
 	telegram.Register("^\\/info @\\D+", settings.GetControlID(), telegram.FindUserByUsername)
@@ -28,26 +24,11 @@ func main() {
 	telegram.Register("^\\/info \\d+", settings.GetControlID(), telegram.FindUserByUserID)
 	telegram.RegisterCallback("^\\/info \\d+", telegram.FindUserByUserID)
 	go telegram.InitBot(settings.GetBotToken())
-	api := iris.New()
-	api.StaticServe("./static/")
-	api.UseTemplate(html.New(html.Config{
-		Layout: "layout.html",
-	})).Directory("./templates", ".html")
-	api.Config.IsDevelopment = true
-	api.Get("/", webroutes.ServeIndex)
-	if settings.IsRegistrationAllowed() {
-		api.Post("/register", webroutes.AddUser)
+	router := gin.Default()
+	router.Static("/", "./frontend")
+	adminUser := router.Group("/user")
+	{
+		adminUser.POST("/register", webroutes.PostRegister)
 	}
-	api.Get("/login", webroutes.GetRenderIndex)
-	api.Get("/home", webroutes.GetRenderIndex)
-	api.Get("/logout", webroutes.GetLogout)
-	api.Post("/login", webroutes.GetLogin)
-	api.Get("/user/:id", webroutes.ShowUser)
-	api.Get("/users", webroutes.RenderSearchPage)
-	api.Post("/users/uname", webroutes.SearchByUName)
-	api.Post("/users/alias", webroutes.SearchByAlias)
-	api.Get("/userping/:id", webroutes.ToggleAllowedPing)
-	api.Post("/warn/:userID", webroutes.WarnUser)
-	//api.ListenLETSENCRYPT("127.0.0.1:443")
-	api.Listen(":8080")
+	router.Run(":3000")
 }

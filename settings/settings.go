@@ -11,6 +11,7 @@ type Settings struct {
 	ControlChannelID   int64
 	AllowReg           bool
 	EightBallResponses []string
+	SQLConnectString   string
 }
 
 var settings Settings
@@ -34,7 +35,9 @@ func GetChannelID() int64 {
 func GetControlID() int64 {
 	return settings.ControlChannelID
 }
-
+func GetDBAddr() string {
+	return settings.SQLConnectString
+}
 func IsRegistrationAllowed() bool {
 	return settings.AllowReg
 }
