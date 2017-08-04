@@ -27,7 +27,7 @@ func FindUserByUsername(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 			fmt.Println(user)
 			outmsg := fmt.Sprintf("UserID: %d\nCurrent Name:%s\n", user.TgID, curAlias.Name)
 			for _, warn := range models.GetUsersWarnings(user) {
-				outmsg += warn.WarningText + "\n"
+				outmsg += warn.WarnDate.Format("[2006-Jan-02] ") + warn.WarningText + "\n"
 			}
 			newMsg := tgbotapi.NewMessage(settings.GetControlID(), outmsg)
 			bot.Send(newMsg)
