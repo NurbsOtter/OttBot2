@@ -57,7 +57,7 @@ func FindUserByUserID(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		bot.Send(newMsg)
 		return
 	}
-	user := models.ChatUserFromID(usrID)
+	user := models.ChatUserFromTGID(int(usrID), upd.Message.From.UserName)
 	if user != nil {
 		curAlias := models.GetLatestAliasFromUserID(user.ID)
 		fmt.Println(user)
@@ -115,8 +115,14 @@ func WarnUserByID(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 			fmt.Println("Failed to parse a tgid from /warn")
 			return
 		}
-		models.AddWarningToID(userID, procString[len(strings.Split(procString, " ")[0])+1:])
-		outMsg := fmt.Sprintf("Warned %d", userID)
+		chatUser := models.ChatUserFromTGID(int(userID), upd.Message.From.UserName)
+		var outMsg string
+		if chatUser == nil {
+			outMsg = fmt.Sprintf("Could not find TGID %d", userID)
+		} else {
+			models.AddWarningToID(chatUser.ID, procString[len(strings.Split(procString, " ")[0])+1:])
+			outMsg = fmt.Sprintf("Warned %d", userID)
+		}
 		newMess := tgbotapi.NewMessage(settings.GetControlID(), outMsg)
 		bot.Send(newMess)
 	}
@@ -156,7 +162,7 @@ func SetBanTarget(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 			fmt.Println("Failed to parse a tgid from /warn")
 			return
 		}
-		foundUser := models.ChatUserFromID(userID)
+		foundUser := models.ChatUserFromTGID(int(userID), upd.Message.From.UserName)
 		if foundUser != nil {
 			BotTarget = foundUser
 			alias := models.GetLatestAliasFromUserID(foundUser.ID)
