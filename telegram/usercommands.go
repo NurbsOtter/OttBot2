@@ -25,7 +25,7 @@ func FindUserByUsername(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		if user != nil {
 			curAlias := models.GetLatestAliasFromUserID(user.ID)
 			fmt.Println(user)
-			outmsg := fmt.Sprintf("UserID: %d\nCurrent Name:%s\n", user.TgID, curAlias.Name)
+			outmsg := fmt.Sprintf("UserID: %d\nCurrent Name: %s\n", user.TgID, curAlias.Name)
 			for _, warn := range models.GetUsersWarnings(user) {
 				outmsg += warn.WarningText + "\n"
 			}
@@ -57,7 +57,7 @@ func FindUserByUserID(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		bot.Send(newMsg)
 		return
 	}
-	user := models.ChatUserFromID(usrID)
+	user := models.ChatUserFromTGIDNoUpd(int(usrID))
 	if user != nil {
 		curAlias := models.GetLatestAliasFromUserID(user.ID)
 		fmt.Println(user)
@@ -76,7 +76,7 @@ func MakeAliasInlineKeyboard(aliases []models.ChatUser) tgbotapi.InlineKeyboardM
 	var aliasButtons []tgbotapi.InlineKeyboardButton
 	for _, alias := range aliases {
 		latestID := models.GetLatestAliasFromUserID(alias.ID)
-		btnCmd := fmt.Sprintf("/info %d", alias.ID)
+		btnCmd := fmt.Sprintf("/info %d", alias.TgID)
 		newButt := tgbotapi.NewInlineKeyboardButtonData(latestID.Name, btnCmd)
 		aliasButtons = append(aliasButtons, newButt)
 	}
@@ -115,8 +115,14 @@ func WarnUserByID(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 			fmt.Println("Failed to parse a tgid from /warn")
 			return
 		}
-		models.AddWarningToID(userID, procString[len(strings.Split(procString, " ")[0])+1:])
-		outMsg := fmt.Sprintf("Warned %d", userID)
+		chatUser := models.ChatUserFromTGIDNoUpd(int(userID))
+		var outMsg string
+		if chatUser == nil {
+			outMsg = fmt.Sprintf("Could not find TGID %d", userID)
+		} else {
+			models.AddWarningToID(chatUser.ID, procString[len(strings.Split(procString, " ")[0])+1:])
+			outMsg = fmt.Sprintf("Warned %d", userID)
+		}
 		newMess := tgbotapi.NewMessage(settings.GetControlID(), outMsg)
 		bot.Send(newMess)
 	}
@@ -156,7 +162,7 @@ func SetBanTarget(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 			fmt.Println("Failed to parse a tgid from /warn")
 			return
 		}
-		foundUser := models.ChatUserFromID(userID)
+		foundUser := models.ChatUserFromTGIDNoUpd(int(userID))
 		if foundUser != nil {
 			BotTarget = foundUser
 			alias := models.GetLatestAliasFromUserID(foundUser.ID)

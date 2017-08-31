@@ -32,3 +32,5 @@ vendor/
 settings.json
 *.sublime-*
 *.db*
+
+/.idea*
