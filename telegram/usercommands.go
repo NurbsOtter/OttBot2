@@ -213,3 +213,10 @@ func HandleNewMember(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	}
 }
 
+func HandleLeftMember(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	if upd.Message.Chat.ID == settings.GetChannelID() {
+		newMess := tgbotapi.NewMessage(settings.GetChannelID(), "Goodbye member "+strconv.Itoa(upd.Message.LeftChatMember.ID))
+		bot.Send(newMess)
+	}
+}
+

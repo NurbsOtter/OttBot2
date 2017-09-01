@@ -12,6 +12,7 @@ import (
 func main() {
 	settings.LoadSettings()
 	models.MakeDB(settings.GetDBAddr())
+	metrics.StartUp()
 	telegram.Register("\\/ping", settings.GetChannelID(), telegram.TestCmd)
 	telegram.Register(".*", settings.GetChannelID(), telegram.HandleUsers)
 	telegram.Register("^\\/info @\\D+", settings.GetControlID(), telegram.FindUserByUsername)
