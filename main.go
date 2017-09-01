@@ -6,6 +6,7 @@ import (
 	"OttBot2/telegram"
 	"OttBot2/webroutes"
 	"gopkg.in/gin-gonic/gin.v1"
+	"OttBot2/metrics"
 )
 
 func main() {
@@ -22,7 +23,10 @@ func main() {
 	telegram.Register("^\\/yes", settings.GetControlID(), telegram.ApplyBannination)
 	telegram.Register("^\\/no", settings.GetControlID(), telegram.ClearBotTarget)
 	telegram.Register("^\\/info \\d+", settings.GetControlID(), telegram.FindUserByUserID)
+	telegram.Register("\\/status", settings.GetControlID(), telegram.GetBotStatus)
 	telegram.RegisterCallback("^\\/info \\d+", telegram.FindUserByUserID)
+	telegram.RegisterNewMember(settings.GetChannelID(), telegram.HandleNewMember)
+	telegram.RegisterLeftMember(settings.GetChannelID(), telegram.HandleLeftMember)
 	go telegram.InitBot(settings.GetBotToken())
 	router := gin.Default()
 	router.Static("/", "./frontend")

@@ -7,6 +7,7 @@ import (
 	"gopkg.in/telegram-bot-api.v4"
 	"strconv"
 	"strings"
+	"OttBot2/metrics"
 )
 
 var BotTarget *models.ChatUser
@@ -197,3 +198,18 @@ func ClearBotTarget(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		bot.Send(outMsg)
 	}
 }
+
+func GetBotStatus(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	if upd.Message.Chat.ID == settings.GetControlID() {
+		newMess := tgbotapi.NewMessage(settings.GetControlID(), "Time since startup: "+metrics.TimeSinceStart().String())
+		bot.Send(newMess)
+	}
+}
+
+func HandleNewMember(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	if upd.Message.Chat.ID == settings.GetChannelID() {
+		newMess := tgbotapi.NewMessage(settings.GetChannelID(), "Hello new member "+strconv.Itoa(upd.Message.NewChatMember.ID))
+		bot.Send(newMess)
+	}
+}
+
