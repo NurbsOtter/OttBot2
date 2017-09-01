@@ -151,6 +151,5 @@ func InitBot(botToken string) {
 		} else {
 			continue
 		}
-
 	}
 }

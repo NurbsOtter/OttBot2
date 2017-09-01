@@ -1,13 +1,13 @@
 package telegram
 
 import (
+	"OttBot2/metrics"
 	"OttBot2/models"
 	"OttBot2/settings"
 	"fmt"
 	"gopkg.in/telegram-bot-api.v4"
 	"strconv"
 	"strings"
-	"OttBot2/metrics"
 )
 
 var BotTarget *models.ChatUser
@@ -220,4 +220,3 @@ func HandleLeftMember(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		models.SetActiveUserState(foundUser.ID, false)
 	}
 }
-

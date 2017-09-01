@@ -12,7 +12,7 @@ type ChatUser struct {
 	UserName    string
 	TgID        int64
 	PingAllowed bool
-	ActiveUser bool
+	ActiveUser  bool
 }
 type UserAlias struct {
 	ID         int64
@@ -62,7 +62,7 @@ func ChatUserFromTGID(tgID int, userName string) *ChatUser {
 		}
 		foundUser.UserName = userName
 	}
-	if foundUser.ActiveUser == false{
+	if foundUser.ActiveUser == false {
 		SetActiveUserState(foundUser.ID, true)
 	}
 	return foundUser
@@ -207,7 +207,7 @@ func SearchAliases(query string) []UserAlias {
 	}
 	return outAliases
 }
-func (u *ChatUser) ToggleModPing() {
+func (u *ChatUser) ToggleModPing() { //Refactor this for use via command
 	newRights := !u.PingAllowed
 	_, err := db.Exec("UPDATE chatUser SET pingAllowed=? WHERE id=?", newRights, u.ID)
 	if err != nil {
