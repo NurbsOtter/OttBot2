@@ -10,6 +10,6 @@ func StartUp() {
 	startTime = time.Now()
 }
 
-func TimeSinceStart() (time.Duration) {
+func TimeSinceStart() time.Duration {
 	return time.Since(startTime)
 }
