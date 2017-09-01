@@ -1,6 +1,7 @@
 package main
 
 import (
+	"OttBot2/metrics"
 	"OttBot2/models"
 	"OttBot2/settings"
 	"OttBot2/telegram"
@@ -11,6 +12,7 @@ import (
 func main() {
 	settings.LoadSettings()
 	models.MakeDB(settings.GetDBAddr())
+	metrics.StartUp()
 	telegram.Register("\\/ping", settings.GetChannelID(), telegram.TestCmd)
 	telegram.Register(".*", settings.GetChannelID(), telegram.HandleUsers)
 	telegram.Register("^\\/info @\\D+", settings.GetControlID(), telegram.FindUserByUsername)
@@ -22,7 +24,10 @@ func main() {
 	telegram.Register("^\\/yes", settings.GetControlID(), telegram.ApplyBannination)
 	telegram.Register("^\\/no", settings.GetControlID(), telegram.ClearBotTarget)
 	telegram.Register("^\\/info \\d+", settings.GetControlID(), telegram.FindUserByUserID)
+	telegram.Register("\\/status", settings.GetControlID(), telegram.GetBotStatus)
 	telegram.RegisterCallback("^\\/info \\d+", telegram.FindUserByUserID)
+	telegram.RegisterNewMember(settings.GetChannelID(), telegram.HandleNewMember)
+	telegram.RegisterLeftMember(settings.GetChannelID(), telegram.HandleLeftMember)
 	go telegram.InitBot(settings.GetBotToken())
 	router := gin.Default()
 	router.Static("/", "./frontend")
