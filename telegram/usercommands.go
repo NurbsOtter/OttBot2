@@ -6,6 +6,7 @@ import (
 	"OttBot2/settings"
 	"fmt"
 	"gopkg.in/telegram-bot-api.v4"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -218,5 +219,82 @@ func HandleLeftMember(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		foundUser := models.ChatUserFromTGID(upd.Message.LeftChatMember.ID, upd.Message.LeftChatMember.UserName)
 		models.UpdateAliases(upd.Message.LeftChatMember.FirstName, upd.Message.LeftChatMember.LastName, foundUser.ID)
 		models.SetActiveUserState(foundUser.ID, false)
+	}
+}
+
+func GetFARating(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	if upd.Message.Chat.ID == settings.GetChannelID() {
+		regex := regexp.MustCompile(`.*furaffinity\.net\/(?:view|full)\/(\d*)`)
+		procString := regex.FindStringSubmatch(upd.Message.Text)
+		if procString != nil {
+			rating := FALookup(procString[1])
+			if rating != "" && rating != "General" {
+				mainMess := tgbotapi.NewMessage(settings.GetChannelID(), "\u2757 The linked image above is rated NSFW \u2757")
+				bot.Send(mainMess)
+				fromId := strconv.Itoa(upd.Message.From.ID)
+				modMess := tgbotapi.NewMessage(settings.GetControlID(), "User ID "+fromId+" just linked a NSFW image")
+				bot.Send(modMess)
+				newFwd := tgbotapi.NewForward(settings.GetControlID(), upd.Message.Chat.ID, upd.Message.MessageID)
+				bot.Send(newFwd)
+			}
+		}
+	}
+}
+
+func GetFNRating(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	if upd.Message.Chat.ID == settings.GetChannelID() {
+		regex := regexp.MustCompile(`.*furrynetwork\.com/.*\?viewId=(\d*)`)
+		procString := regex.FindStringSubmatch(upd.Message.Text)
+		if procString != nil {
+			rating := FNLookup(procString[1])
+			if rating != 0 {
+				mainMess := tgbotapi.NewMessage(settings.GetChannelID(), "\u2757 The linked image above is rated NSFW \u2757")
+				bot.Send(mainMess)
+				fromId := strconv.Itoa(upd.Message.From.ID)
+				modMess := tgbotapi.NewMessage(settings.GetControlID(), "User ID "+fromId+" just linked a NSFW image")
+				bot.Send(modMess)
+				newFwd := tgbotapi.NewForward(settings.GetControlID(), upd.Message.Chat.ID, upd.Message.MessageID)
+				bot.Send(newFwd)
+			}
+		}
+	}
+}
+
+func GetE621IDRating(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	if upd.Message.Chat.ID == settings.GetChannelID() {
+		regex := regexp.MustCompile(`.*e621\.net/post/show/(\d*)`)
+		procString := regex.FindStringSubmatch(upd.Message.Text)
+		if procString != nil {
+			rating := E621IDLookup(procString[1])
+			if rating != "" && rating != "s" {
+				mainMess := tgbotapi.NewMessage(settings.GetChannelID(), "\u2757 The linked image above is rated NSFW \u2757")
+				bot.Send(mainMess)
+				fromId := strconv.Itoa(upd.Message.From.ID)
+				modMess := tgbotapi.NewMessage(settings.GetControlID(), "User ID "+fromId+" just linked a NSFW image")
+				bot.Send(modMess)
+				newFwd := tgbotapi.NewForward(settings.GetControlID(), upd.Message.Chat.ID, upd.Message.MessageID)
+				bot.Send(newFwd)
+
+			}
+		}
+	}
+}
+
+func GetE621MD5Rating(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	if upd.Message.Chat.ID == settings.GetChannelID() {
+		regex := regexp.MustCompile(`.*static1\.e621\.net/data/../../(.+?)\.`)
+		procString := regex.FindStringSubmatch(upd.Message.Text)
+		if procString != nil {
+			rating := E621MD5Lookup(procString[1])
+			if rating != "" && rating != "s" {
+				mainMess := tgbotapi.NewMessage(settings.GetChannelID(), "\u2757 The linked image above is rated NSFW \u2757")
+				bot.Send(mainMess)
+				fromId := strconv.Itoa(upd.Message.From.ID)
+				modMess := tgbotapi.NewMessage(settings.GetControlID(), "User ID "+fromId+" just linked a NSFW image")
+				bot.Send(modMess)
+				newFwd := tgbotapi.NewForward(settings.GetControlID(), upd.Message.Chat.ID, upd.Message.MessageID)
+				bot.Send(newFwd)
+			}
+		}
 	}
 }

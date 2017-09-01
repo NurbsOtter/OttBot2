@@ -11,7 +11,12 @@ func main() {
 	settings.LoadSettings()
 	models.MakeDB(settings.GetDBAddr())
 	metrics.StartUp()
-	telegram.Register("\\/ping", settings.GetChannelID(), telegram.TestCmd)
+	//Refactor all of this regex to `` notation and remove double escaping
+	telegram.Register(`\/ping`, settings.GetChannelID(), telegram.TestCmd)
+	telegram.Register(`.*furaffinity\.net\/(?:view|full)\/(\d*)`, settings.GetChannelID(), telegram.GetFARating)
+	telegram.Register(`.*furrynetwork\.com/.*\?viewId=(\d*)`, settings.GetChannelID(), telegram.GetFNRating)
+	telegram.Register(`.*e621\.net/post/show/(\d*)`, settings.GetChannelID(), telegram.GetE621IDRating)
+	telegram.Register(`.*static1\.e621\.net/data/../../(.+?)\.`, settings.GetChannelID(), telegram.GetE621MD5Rating)
 	telegram.Register(".*", settings.GetChannelID(), telegram.HandleUsers)
 	telegram.Register("^\\/info @\\D+", settings.GetControlID(), telegram.FindUserByUsername)
 	telegram.Register("^\\/warn @.+", settings.GetControlID(), telegram.WarnUserByUsername)
