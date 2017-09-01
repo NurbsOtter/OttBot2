@@ -26,7 +26,7 @@ func FindUserByUsername(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		if user != nil {
 			curAlias := models.GetLatestAliasFromUserID(user.ID)
 			fmt.Println(user)
-			outmsg := fmt.Sprintf("UserID: %d\nCurrent Name: %s\n", user.TgID, curAlias.Name)
+			outmsg := fmt.Sprintf("UserID: %d\nCurrent Name:%s\nActive User: %t", user.TgID, curAlias.Name, user.ActiveUser)
 			for _, warn := range models.GetUsersWarnings(user) {
 				outmsg += warn.WarningText + "\n"
 			}
@@ -62,7 +62,7 @@ func FindUserByUserID(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	if user != nil {
 		curAlias := models.GetLatestAliasFromUserID(user.ID)
 		fmt.Println(user)
-		outmsg := fmt.Sprintf("UserID: %d\nCurrent Name:%s\n", user.TgID, curAlias.Name)
+		outmsg := fmt.Sprintf("UserID: %d\nCurrent Name:%s\nActive User: %t", user.TgID, curAlias.Name, user.ActiveUser)
 		for _, warn := range models.GetUsersWarnings(user) {
 			outmsg += warn.WarningText + "\n"
 		}
