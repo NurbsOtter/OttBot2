@@ -126,7 +126,7 @@ func InitBot(botToken string) {
 	for update := range updates {
 		if update.Message != nil {
 			if update.Message.NewChatMember != nil {
-				outLog := fmt.Sprintf("New Member Joined: ID: %d Name: %s %s Username: %s", update.Message.From.ID, update.Message.From.FirstName, update.Message.From.LastName, update.Message.From.UserName)
+				outLog := fmt.Sprintf("Member Joined: ID: %d Name: %s %s Username: %s", update.Message.From.ID, update.Message.From.FirstName, update.Message.From.LastName, update.Message.From.UserName)
 				fmt.Println(outLog)
 				//fmt.Println(update.Message.Chat.ID)
 				ProcessNewMember(update, bot)

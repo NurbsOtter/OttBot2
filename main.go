@@ -5,8 +5,8 @@ import (
 	"OttBot2/settings"
 	"OttBot2/telegram"
 	"OttBot2/webroutes"
-	"gopkg.in/gin-gonic/gin.v1"
 	"OttBot2/metrics"
+	"gopkg.in/gin-gonic/gin.v1"
 )
 
 func main() {

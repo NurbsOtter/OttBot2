@@ -208,15 +208,16 @@ func GetBotStatus(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 
 func HandleNewMember(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	if upd.Message.Chat.ID == settings.GetChannelID() {
-		newMess := tgbotapi.NewMessage(settings.GetChannelID(), "Hello new member "+strconv.Itoa(upd.Message.NewChatMember.ID))
-		bot.Send(newMess)
+		foundUser := models.ChatUserFromTGID(upd.Message.NewChatMember.ID, upd.Message.NewChatMember.UserName)
+		models.UpdateAliases(upd.Message.NewChatMember.FirstName, upd.Message.NewChatMember.LastName, foundUser.ID)
 	}
 }
 
 func HandleLeftMember(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	if upd.Message.Chat.ID == settings.GetChannelID() {
-		newMess := tgbotapi.NewMessage(settings.GetChannelID(), "Goodbye member "+strconv.Itoa(upd.Message.LeftChatMember.ID))
-		bot.Send(newMess)
+		foundUser := models.ChatUserFromTGID(upd.Message.LeftChatMember.ID, upd.Message.LeftChatMember.UserName)
+		models.UpdateAliases(upd.Message.LeftChatMember.FirstName, upd.Message.LeftChatMember.LastName, foundUser.ID)
+		models.SetActiveUserState(foundUser.ID, false)
 	}
 }
 
