@@ -1,11 +1,11 @@
 package main
 
 import (
+	"OttBot2/metrics"
 	"OttBot2/models"
 	"OttBot2/settings"
 	"OttBot2/telegram"
 	"OttBot2/webroutes"
-	"OttBot2/metrics"
 	"gopkg.in/gin-gonic/gin.v1"
 )
 
