@@ -27,10 +27,7 @@ func FindUserByUsername(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		if user != nil {
 			curAlias := models.GetLatestAliasFromUserID(user.ID)
 			fmt.Println(user)
-			outmsg := fmt.Sprintf("User ID: %d\nCurrent Name: %s\nActive User: %t\nMod Ping: %t", user.TgID, curAlias.Name, user.ActiveUser, user.PingAllowed)
-			for _, warn := range models.GetUsersWarnings(user) {
-				outmsg += warn.WarningText + "\n"
-			}
+			outmsg := fmt.Sprintf("User ID: %d\nCurrent Name: %s\nActive User: %t\nMod Ping: %t\n", user.TgID, curAlias.Name, user.ActiveUser, user.PingAllowed)
 			newMsg := tgbotapi.NewMessage(settings.GetControlID(), outmsg)
 			newMsg.ReplyMarkup = MakeUserInfoInlineKeyboard(user.ID)
 			bot.Send(newMsg)
@@ -42,6 +39,16 @@ func FindUserByUsername(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 
 }
 func MakeUserInfoInlineKeyboard(userId int64) tgbotapi.InlineKeyboardMarkup {
+	var infoButtons []tgbotapi.InlineKeyboardButton
+	btnCmd := fmt.Sprintf("/togglemods %d", userId)
+	newButt := tgbotapi.NewInlineKeyboardButtonData("Toggle /mods", btnCmd)
+	warnCmd := fmt.Sprintf("/getwarnings %d", userId)
+	warnButt := tgbotapi.NewInlineKeyboardButtonData("View warnings", warnCmd)
+	infoButtons = append(infoButtons, newButt)
+	infoButtons = append(infoButtons, warnButt)
+	return tgbotapi.NewInlineKeyboardMarkup(infoButtons)
+}
+func MakeUserInfoInlineKeyboardNoWarnButton(userId int64) tgbotapi.InlineKeyboardMarkup {
 	var infoButtons []tgbotapi.InlineKeyboardButton
 	btnCmd := fmt.Sprintf("/togglemods %d", userId)
 	newButt := tgbotapi.NewInlineKeyboardButtonData("Toggle /mods", btnCmd)
@@ -71,10 +78,7 @@ func FindUserByUserID(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	if user != nil {
 		curAlias := models.GetLatestAliasFromUserID(user.ID)
 		fmt.Println(user)
-		outmsg := fmt.Sprintf("User ID: %d\nCurrent Name: %s\nActive User: %t\nMod Ping: %t", user.TgID, curAlias.Name, user.ActiveUser, user.PingAllowed)
-		for _, warn := range models.GetUsersWarnings(user) {
-			outmsg += warn.WarningText + "\n"
-		}
+		outmsg := fmt.Sprintf("User ID: %d\nCurrent Name: %s\nActive User: %t\nMod Ping: %t\n", user.TgID, curAlias.Name, user.ActiveUser, user.PingAllowed)
 		newMsg := tgbotapi.NewMessage(settings.GetControlID(), outmsg)
 		newMsg.ReplyMarkup = MakeUserInfoInlineKeyboard(user.ID)
 		bot.Send(newMsg)
@@ -112,9 +116,15 @@ func WarnUserByUsername(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		userName := strings.Split(procString, " ")[0]
 		userName = strings.ToLower(userName)
 		message := procString[len(userName)+1:]
-		models.AddWarningToUsername(userName, message)
-		newMess := tgbotapi.NewMessage(settings.GetControlID(), "Warned "+userName)
-		bot.Send(newMess)
+		user := models.SearchUserByUsername(userName)
+		if user != nil {
+			models.AddWarningToID(user.ID, message)
+			newMess := tgbotapi.NewMessage(settings.GetControlID(), "Warned "+userName)
+			bot.Send(newMess)
+		} else {
+			newMess := tgbotapi.NewMessage(settings.GetControlID(), "Could not find user")
+			bot.Send(newMess)
+		}
 	}
 }
 func WarnUserByID(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
@@ -328,6 +338,38 @@ func ToggleMods(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	outmsg := fmt.Sprintf("User ID: %d\nCurrent Name: %s\nActive User: %t\nMod Ping: %t", chatUser.TgID, curAlias.Name, chatUser.ActiveUser, !chatUser.PingAllowed)
 	editMsg := tgbotapi.NewEditMessageText(upd.CallbackQuery.Message.Chat.ID, upd.CallbackQuery.Message.MessageID, outmsg)
 	inlineKeyboard := MakeUserInfoInlineKeyboard(chatUser.ID)
+	editMsg.ReplyMarkup = &inlineKeyboard
+	bot.Send(editMsg)
+}
+
+func DisplayWarnings(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	var userIdStr string
+	if upd.Message == nil {
+		userIdStr = upd.CallbackQuery.Data[12:]
+		config := tgbotapi.NewCallback(upd.CallbackQuery.ID, "") //We don't need this so get it outta da way.
+		bot.AnswerCallbackQuery(config)
+	} else {
+		return
+	}
+	userIdStr = strings.Trim(userIdStr, " ")
+	userId, err := strconv.ParseInt(userIdStr, 10, 64)
+	if err != nil {
+		panic(err)
+	}
+	chatUser := models.ChatUserFromID(userId)
+	outmsg := upd.CallbackQuery.Message.Text
+	warnings := models.GetUsersWarnings(chatUser)
+	if len(warnings) > 0 {
+		outmsg += "\n\nWarnings:"
+		for _, warn := range warnings {
+			outmsg += "\n" + warn.WarningText
+		}
+	} else {
+		outmsg += "\n\n No warnings found"
+	}
+
+	editMsg := tgbotapi.NewEditMessageText(upd.CallbackQuery.Message.Chat.ID, upd.CallbackQuery.Message.MessageID, outmsg)
+	inlineKeyboard := MakeUserInfoInlineKeyboardNoWarnButton(chatUser.ID)
 	editMsg.ReplyMarkup = &inlineKeyboard
 	bot.Send(editMsg)
 }
