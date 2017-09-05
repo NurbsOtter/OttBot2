@@ -101,7 +101,7 @@ func SummonMods(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		newMsg := tgbotapi.NewMessage(upd.Message.Chat.ID, "Summoning mods!")
 		bot.Send(newMsg)
 	} else {
-		newMsg := tgbotapi.NewMessage(upd.Message.Chat.ID, "Sorry you were banned from /mods")
+		newMsg := tgbotapi.NewMessage(upd.Message.Chat.ID, "Sorry, you are banned from /mods")
 		bot.Send(newMsg)
 	}
 }
