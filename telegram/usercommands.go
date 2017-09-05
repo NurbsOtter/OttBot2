@@ -193,7 +193,7 @@ func PreBan(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 			return
 		}
 		foundUser := models.ChatUserFromTGIDNoUpd(int(userID))
-		if foundUser != nil {
+		if foundUser != nil && foundUser.ActiveUser {
 			alias := models.GetLatestAliasFromUserID(foundUser.ID)
 			var outMsg string
 			outMsg = fmt.Sprintf("Ban target:\nTelegram ID:%d", foundUser.TgID)
@@ -205,6 +205,9 @@ func PreBan(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 			}
 			msg := tgbotapi.NewMessage(settings.GetControlID(), outMsg)
 			msg.ReplyMarkup = MakeBanInlineKeyboard(foundUser.ID)
+			bot.Send(msg)
+		} else if foundUser != nil {
+			msg := tgbotapi.NewMessage(settings.GetControlID(), "User is already not in chat")
 			bot.Send(msg)
 		} else {
 			msg := tgbotapi.NewMessage(settings.GetControlID(), "User not found!")
@@ -272,6 +275,7 @@ func ConfirmBan(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	banConfig.ChatID = settings.GetChannelID()
 	banConfig.UserID = int(chatUser.TgID)
 	bot.KickChatMember(banConfig)
+	models.SetActiveUserState(userId, false)
 	alias := models.GetLatestAliasFromUserID(chatUser.ID)
 	var outMsg string
 	outMsg = fmt.Sprintf("Ban target:\nTelegram ID:%d", chatUser.TgID)
@@ -281,7 +285,13 @@ func ConfirmBan(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	if chatUser.UserName != "" {
 		outMsg += fmt.Sprintf("\nUsername: @%s", chatUser.UserName)
 	}
-	outMsg += "\n\nUser banned"
+	outMsg += "\n\nUser banned by "
+	if upd.CallbackQuery.From.UserName != "" {
+		outMsg += "@" + upd.CallbackQuery.From.UserName
+	} else if upd.CallbackQuery.From.FirstName != "" {
+		outMsg += upd.CallbackQuery.From.FirstName + " " + upd.CallbackQuery.From.LastName
+	}
+	outMsg += " TGID: " + strconv.Itoa(upd.CallbackQuery.From.ID)
 	editMsg := tgbotapi.NewEditMessageText(upd.CallbackQuery.Message.Chat.ID, upd.CallbackQuery.Message.MessageID, outMsg)
 	bot.Send(editMsg)
 }
