@@ -207,6 +207,7 @@ func SearchAliases(query string) []UserAlias {
 	}
 	return outAliases
 }
+
 //func (u *ChatUser) ToggleModPing() { //Refactor this for use via command
 //	newRights := !u.PingAllowed
 //	_, err := db.Exec("UPDATE chatUser SET pingAllowed=? WHERE id=?", newRights, u.ID)

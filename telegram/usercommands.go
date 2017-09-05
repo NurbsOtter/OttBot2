@@ -319,7 +319,7 @@ func ToggleMods(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	}
 	userIdStr = strings.Trim(userIdStr, " ")
 	userId, err := strconv.ParseInt(userIdStr, 10, 64)
-	if err != nil{
+	if err != nil {
 		panic(err)
 	}
 	chatUser := models.ChatUserFromID(userId)
