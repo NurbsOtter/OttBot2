@@ -6,7 +6,6 @@ import (
 	"regexp"
 )
 
-var bot *tgbotapi.BotAPI
 var commands []*BotCommand
 var callbacks []*BotCommand
 var newmembercommands []*MemberCommand
@@ -118,7 +117,6 @@ func InitBot(botToken string) {
 	bot.Debug = false
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
-	BotTarget = nil
 	updates, err := bot.GetUpdatesChan(u)
 	if err != nil {
 		panic(err)
@@ -126,12 +124,12 @@ func InitBot(botToken string) {
 	for update := range updates {
 		if update.Message != nil {
 			if update.Message.NewChatMember != nil {
-				outLog := fmt.Sprintf("Member Joined: ID: %d Name: %s %s Username: %s", update.Message.From.ID, update.Message.From.FirstName, update.Message.From.LastName, update.Message.From.UserName)
+				outLog := fmt.Sprintf("Member Joined: ID: %d Name: %s %s Username: %s", update.Message.NewChatMember.ID, update.Message.NewChatMember.FirstName, update.Message.NewChatMember.LastName, update.Message.NewChatMember.UserName)
 				fmt.Println(outLog)
 				//fmt.Println(update.Message.Chat.ID)
 				ProcessNewMember(update, bot)
 			} else if update.Message.LeftChatMember != nil {
-				outLog := fmt.Sprintf("Member Left: ID: %d Name: %s %s Username: %s", update.Message.From.ID, update.Message.From.FirstName, update.Message.From.LastName, update.Message.From.UserName)
+				outLog := fmt.Sprintf("Member Left: ID: %d Name: %s %s Username: %s", update.Message.LeftChatMember.ID, update.Message.LeftChatMember.FirstName, update.Message.LeftChatMember.LastName, update.Message.LeftChatMember.UserName)
 				fmt.Println(outLog)
 				//fmt.Println(update.Message.Chat.ID)
 				ProcessLeftMember(update, bot)

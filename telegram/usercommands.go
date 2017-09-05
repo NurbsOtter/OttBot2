@@ -11,8 +11,16 @@ import (
 	"strings"
 )
 
-var BotTarget *models.ChatUser
+//var BotTarget *models.ChatUser
 
+func MainChannelHelp(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	newMsg := tgbotapi.NewMessage(settings.GetChannelID(), "/mods - Call the chat moderators")
+	bot.Send(newMsg)
+}
+func ControlChannelHelp(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	newMsg := tgbotapi.NewMessage(settings.GetControlID(), "/info <@username OR TelegramID> - Get information about a username\n/warn <@username OR TelegramID> <warning message> - Record a warning for a user\n/find <display name> - Find a user by their display name\n/ban <TelegramID> - Ban a user from the main chat\n/status - Get bot status information")
+	bot.Send(newMsg)
+}
 func HandleUsers(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	foundUser := models.ChatUserFromTGID(upd.Message.From.ID, upd.Message.From.UserName)
 	models.UpdateAliases(upd.Message.From.FirstName, upd.Message.From.LastName, foundUser.ID)
@@ -174,49 +182,118 @@ func LookupAlias(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		}
 	}
 }
-func SetBanTarget(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
+
+func PreBan(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	if upd.Message.Chat.ID == settings.GetControlID() {
 		procString := upd.Message.Text[5:]
 		procString = strings.Trim(procString, " ")
 		userID, err := strconv.ParseInt(strings.Split(procString, " ")[0], 10, 64)
 		if err != nil {
-			fmt.Println("Failed to parse a tgid from /warn")
+			fmt.Println("Failed to parse a TgID from /ban")
 			return
 		}
 		foundUser := models.ChatUserFromTGIDNoUpd(int(userID))
 		if foundUser != nil {
-			BotTarget = foundUser
 			alias := models.GetLatestAliasFromUserID(foundUser.ID)
 			var outMsg string
+			outMsg = fmt.Sprintf("Ban target:\nTelegram ID:%d", foundUser.TgID)
 			if alias != nil {
-				outMsg = fmt.Sprintf("Banning user %s\n/yes to confirm", alias.Name)
-			} else {
-				outMsg = fmt.Sprintf("Banning user %s\n/yes to confirm", foundUser.ID)
+				outMsg += fmt.Sprintf("\nName: %s", alias.Name)
+			}
+			if foundUser.UserName != "" {
+				outMsg += fmt.Sprintf("\nUsername: @%s", foundUser.UserName)
 			}
 			msg := tgbotapi.NewMessage(settings.GetControlID(), outMsg)
+			msg.ReplyMarkup = MakeBanInlineKeyboard(foundUser.ID)
 			bot.Send(msg)
-			fmt.Println(BotTarget)
 		} else {
 			msg := tgbotapi.NewMessage(settings.GetControlID(), "User not found!")
 			bot.Send(msg)
 		}
 	}
 }
-func ApplyBannination(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
-	if upd.Message.Chat.ID == settings.GetControlID() && BotTarget != nil {
-		banConfig := tgbotapi.ChatMemberConfig{}
-		banConfig.ChatID = settings.GetChannelID()
-		banConfig.UserID = int(BotTarget.TgID)
-		BotTarget = nil
-		bot.KickChatMember(banConfig)
-	}
+func MakeBanInlineKeyboard(userId int64) tgbotapi.InlineKeyboardMarkup {
+	var banButtons []tgbotapi.InlineKeyboardButton
+	confirmCmd := fmt.Sprintf("/preconfirmban %d", userId)
+	confirmButt := tgbotapi.NewInlineKeyboardButtonData("Confirm ban", confirmCmd)
+	cancelCmd := "/cancelban"
+	cancelButt := tgbotapi.NewInlineKeyboardButtonData("Cancel ban", cancelCmd)
+	banButtons = append(banButtons, confirmButt)
+	banButtons = append(banButtons, cancelButt)
+	return tgbotapi.NewInlineKeyboardMarkup(banButtons)
 }
-func ClearBotTarget(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
-	if upd.Message.Chat.ID == settings.GetControlID() && BotTarget != nil {
-		BotTarget = nil
-		outMsg := tgbotapi.NewMessage(settings.GetControlID(), "Cleared the ban target.\n\n :(")
-		bot.Send(outMsg)
+func PreConfirmBan(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	var userIdStr string
+	if upd.Message == nil {
+		userIdStr = upd.CallbackQuery.Data[14:]
+		config := tgbotapi.NewCallback(upd.CallbackQuery.ID, "") //We don't need this so get it outta da way.
+		bot.AnswerCallbackQuery(config)
+	} else {
+		return
 	}
+	userIdStr = strings.Trim(userIdStr, " ")
+	userId, err := strconv.ParseInt(userIdStr, 10, 64)
+	if err != nil {
+		panic(err)
+	}
+	outMsg := upd.CallbackQuery.Message.Text
+	outMsg += "\n\nAre you ABSOLUTELY SURE you want to ban this user?"
+	editMsg := tgbotapi.NewEditMessageText(upd.CallbackQuery.Message.Chat.ID, upd.CallbackQuery.Message.MessageID, outMsg)
+	inlineKeyboard := MakeBanConfirmInlineKeyboard(userId)
+	editMsg.ReplyMarkup = &inlineKeyboard
+	bot.Send(editMsg)
+}
+func MakeBanConfirmInlineKeyboard(userId int64) tgbotapi.InlineKeyboardMarkup {
+	var banButtons []tgbotapi.InlineKeyboardButton
+	confirmCmd := fmt.Sprintf("/confirmban %d", userId)
+	confirmButt := tgbotapi.NewInlineKeyboardButtonData("Yes, I am sure", confirmCmd)
+	cancelCmd := "/cancelban"
+	cancelButt := tgbotapi.NewInlineKeyboardButtonData("No, cancel ban", cancelCmd)
+	banButtons = append(banButtons, confirmButt)
+	banButtons = append(banButtons, cancelButt)
+	return tgbotapi.NewInlineKeyboardMarkup(banButtons)
+}
+func ConfirmBan(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	var userIdStr string
+	if upd.Message == nil {
+		userIdStr = upd.CallbackQuery.Data[11:]
+		config := tgbotapi.NewCallback(upd.CallbackQuery.ID, "") //We don't need this so get it outta da way.
+		bot.AnswerCallbackQuery(config)
+	} else {
+		return
+	}
+	userIdStr = strings.Trim(userIdStr, " ")
+	userId, err := strconv.ParseInt(userIdStr, 10, 64)
+	if err != nil {
+		panic(err)
+	}
+	chatUser := models.ChatUserFromID(userId)
+	banConfig := tgbotapi.ChatMemberConfig{}
+	banConfig.ChatID = settings.GetChannelID()
+	banConfig.UserID = int(chatUser.TgID)
+	bot.KickChatMember(banConfig)
+	alias := models.GetLatestAliasFromUserID(chatUser.ID)
+	var outMsg string
+	outMsg = fmt.Sprintf("Ban target:\nTelegram ID:%d", chatUser.TgID)
+	if alias != nil {
+		outMsg += fmt.Sprintf("\nName: %s", alias.Name)
+	}
+	if chatUser.UserName != "" {
+		outMsg += fmt.Sprintf("\nUsername: @%s", chatUser.UserName)
+	}
+	outMsg += "\n\nUser banned"
+	editMsg := tgbotapi.NewEditMessageText(upd.CallbackQuery.Message.Chat.ID, upd.CallbackQuery.Message.MessageID, outMsg)
+	bot.Send(editMsg)
+}
+func CancelBan(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	if upd.Message == nil {
+		config := tgbotapi.NewCallback(upd.CallbackQuery.ID, "") //We don't need this so get it outta da way.
+		bot.AnswerCallbackQuery(config)
+	} else {
+		return
+	}
+	editMsg := tgbotapi.NewEditMessageText(upd.CallbackQuery.Message.Chat.ID, upd.CallbackQuery.Message.MessageID, "Cancelled ban")
+	bot.Send(editMsg)
 }
 
 func GetBotStatus(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
