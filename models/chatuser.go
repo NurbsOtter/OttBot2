@@ -49,7 +49,7 @@ func ChatUserFromTGID(tgID int, userName string) *ChatUser {
 		}
 		defer stmt.Close()
 		insStmt.Exec(userName, tgID)
-		stmt.QueryRow(tgID).Scan(&foundUser.ID, &foundUser.UserName, &foundUser.TgID, &foundUser.PingAllowed)
+		err = stmt.QueryRow(tgID).Scan(&foundUser.ID, &foundUser.UserName, &foundUser.TgID, &foundUser.PingAllowed, &foundUser.ActiveUser)
 		return foundUser
 	case err != nil:
 		panic(err)
@@ -207,9 +207,15 @@ func SearchAliases(query string) []UserAlias {
 	}
 	return outAliases
 }
-func (u *ChatUser) ToggleModPing() { //Refactor this for use via command
-	newRights := !u.PingAllowed
-	_, err := db.Exec("UPDATE chatUser SET pingAllowed=? WHERE id=?", newRights, u.ID)
+//func (u *ChatUser) ToggleModPing() { //Refactor this for use via command
+//	newRights := !u.PingAllowed
+//	_, err := db.Exec("UPDATE chatUser SET pingAllowed=? WHERE id=?", newRights, u.ID)
+//	if err != nil {
+//		panic(err)
+//	}
+//}
+func SetModPing(userId int64, status bool) {
+	_, err := db.Exec("UPDATE chatUser SET pingAllowed=? WHERE id=?", status, userId)
 	if err != nil {
 		panic(err)
 	}

@@ -28,6 +28,7 @@ func main() {
 	telegram.Register("^\\/no", settings.GetControlID(), telegram.ClearBotTarget)
 	telegram.Register("^\\/info \\d+", settings.GetControlID(), telegram.FindUserByUserID)
 	telegram.Register("\\/status", settings.GetControlID(), telegram.GetBotStatus)
+	telegram.RegisterCallback(`\/togglemods \d+`, telegram.ToggleMods)
 	telegram.RegisterCallback("^\\/info \\d+", telegram.FindUserByUserID)
 	telegram.RegisterNewMember(settings.GetChannelID(), telegram.HandleNewMember)
 	telegram.RegisterLeftMember(settings.GetChannelID(), telegram.HandleLeftMember)
