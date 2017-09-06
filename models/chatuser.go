@@ -150,7 +150,7 @@ func GetLatestAliasFromUserID(userID int64) *UserAlias {
 	return foundAlias
 
 }
-func (u *ChatUser) GetAliases() []UserAlias {
+func GetAliases(u *ChatUser) []UserAlias {
 	rows, err := db.Query("SELECT id,name,userID,changeDate FROM aliases WHERE userID = ?", u.ID)
 	var outAliases []UserAlias
 	switch {

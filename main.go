@@ -31,15 +31,15 @@ func main() {
 	telegram.Register(`^\/warn @.+ .+`, settings.GetControlID(), telegram.WarnUserByUsername)
 	telegram.Register(`^\/warn \d+ .+`, settings.GetControlID(), telegram.WarnUserByID)
 	telegram.Register(`^\/find .+`, settings.GetControlID(), telegram.LookupAlias)
-	telegram.Register(`^\/ban \d+`, settings.GetControlID(), telegram.PreBan)
 	telegram.Register(`^\/status`, settings.GetControlID(), telegram.GetBotStatus)
 
 	//Callbacks
 	telegram.RegisterCallback(`^\/togglemods \d+`, telegram.ToggleMods)
 	telegram.RegisterCallback(`^\/getwarnings \d+`, telegram.DisplayWarnings)
-	telegram.RegisterCallback(`^\/info \d+`, telegram.FindUserByUserID)
+	telegram.RegisterCallback(`^\/getaliases \d+`, telegram.DisplayAliases)
+	telegram.RegisterCallback(`^\/ban \d+`, telegram.PreBan)
+	telegram.RegisterCallback(`^\/callbackinfo \d+`, telegram.CallbackInfo)
 	telegram.RegisterCallback(`^\/preconfirmban \d+`, telegram.PreConfirmBan)
-	telegram.RegisterCallback(`^\/cancelban`, telegram.CancelBan)
 	telegram.RegisterCallback(`^\/confirmban \d+`, telegram.ConfirmBan)
 
 	telegram.RegisterNewMember(settings.GetChannelID(), telegram.HandleNewMember)
