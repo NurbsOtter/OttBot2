@@ -283,15 +283,9 @@ func PreBan(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		panic(err)
 	}
 	foundUser := models.ChatUserFromID(userId)
-	alias := models.GetLatestAliasFromUserID(foundUser.ID)
-	var outMsg string
-	outMsg = fmt.Sprintf("Ban target:\nTelegram ID:%d", foundUser.TgID)
-	if alias != nil {
-		outMsg += fmt.Sprintf("\nName: %s", alias.Name)
-	}
-	if foundUser.UserName != "" {
-		outMsg += fmt.Sprintf("\nUsername: @%s", foundUser.UserName)
-	}
+	infoMessage := GetUserInfoResponse(foundUser)
+	outMsg := infoMessage.Text
+	outMsg += "\nDo you want to ban this user?"
 	editMsg := tgbotapi.NewEditMessageText(upd.CallbackQuery.Message.Chat.ID, upd.CallbackQuery.Message.MessageID, outMsg)
 	inlineKeyboard := MakeBanInlineKeyboard(foundUser.ID)
 	editMsg.ReplyMarkup = &inlineKeyboard
@@ -325,8 +319,10 @@ func PreConfirmBan(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	if err != nil {
 		panic(err)
 	}
-	outMsg := upd.CallbackQuery.Message.Text
-	outMsg += "\n\nAre you ABSOLUTELY SURE you want to ban this user?"
+	foundUser := models.ChatUserFromID(userId)
+	infoMessage := GetUserInfoResponse(foundUser)
+	outMsg := infoMessage.Text
+	outMsg += "\nAre you ABSOLUTELY SURE you want to ban this user?"
 	editMsg := tgbotapi.NewEditMessageText(upd.CallbackQuery.Message.Chat.ID, upd.CallbackQuery.Message.MessageID, outMsg)
 	inlineKeyboard := MakeBanConfirmInlineKeyboard(userId)
 	editMsg.ReplyMarkup = &inlineKeyboard
@@ -360,22 +356,16 @@ func ConfirmBan(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	if err != nil {
 		panic(err)
 	}
-	chatUser := models.ChatUserFromID(userId)
+	foundUser := models.ChatUserFromID(userId)
 	banConfig := tgbotapi.ChatMemberConfig{}
 	banConfig.ChatID = settings.GetChannelID()
-	banConfig.UserID = int(chatUser.TgID)
+	banConfig.UserID = int(foundUser.TgID)
 	bot.KickChatMember(banConfig)
 	models.SetActiveUserState(userId, false)
-	alias := models.GetLatestAliasFromUserID(chatUser.ID)
-	var outMsg string
-	outMsg = fmt.Sprintf("Ban target:\nTelegram ID:%d", chatUser.TgID)
-	if alias != nil {
-		outMsg += fmt.Sprintf("\nName: %s", alias.Name)
-	}
-	if chatUser.UserName != "" {
-		outMsg += fmt.Sprintf("\nUsername: @%s", chatUser.UserName)
-	}
-	outMsg += "\n\nUser banned by "
+	foundUser.ActiveUser = false
+	infoMessage := GetUserInfoResponse(foundUser)
+	outMsg := infoMessage.Text
+	outMsg += "\nUser banned by "
 	if upd.CallbackQuery.From.UserName != "" {
 		outMsg += "@" + upd.CallbackQuery.From.UserName
 	} else if upd.CallbackQuery.From.FirstName != "" {
