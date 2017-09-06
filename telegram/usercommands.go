@@ -50,8 +50,13 @@ func GetUserInfoResponse(user *models.ChatUser) tgbotapi.MessageConfig {
 	if user != nil {
 		curAlias := models.GetLatestAliasFromUserID(user.ID)
 		fmt.Println(user)
-		outmsg := fmt.Sprintf("User ID: %d\nCurrent Name: %s\nActive User: %t\nMod Ping: %t\n", user.TgID, curAlias.Name, user.ActiveUser, user.PingAllowed)
-		newMsg := tgbotapi.NewMessage(settings.GetControlID(), outmsg)
+
+		outMsg := fmt.Sprintf("User ID: %d", user.TgID)
+		if user.UserName != "" {
+			outMsg += fmt.Sprintf("\nUsername: @%s", user.UserName)
+		}
+		outMsg += fmt.Sprintf("\nCurrent name: %s\nActive user: %t\nMod ping: %t\n", curAlias.Name, user.ActiveUser, user.PingAllowed)
+		newMsg := tgbotapi.NewMessage(settings.GetControlID(), outMsg)
 		newMsg.ReplyMarkup = MakeUserInfoInlineKeyboard(user.ID)
 		return newMsg
 	} else {
@@ -410,9 +415,9 @@ func ToggleMods(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	}
 	chatUser := models.ChatUserFromID(userId)
 	models.SetModPing(chatUser.ID, !chatUser.PingAllowed)
-	curAlias := models.GetLatestAliasFromUserID(chatUser.ID)
-	outmsg := fmt.Sprintf("User ID: %d\nCurrent Name: %s\nActive User: %t\nMod Ping: %t", chatUser.TgID, curAlias.Name, chatUser.ActiveUser, !chatUser.PingAllowed)
-	editMsg := tgbotapi.NewEditMessageText(upd.CallbackQuery.Message.Chat.ID, upd.CallbackQuery.Message.MessageID, outmsg)
+	chatUser.PingAllowed = !chatUser.PingAllowed
+	outMsg := GetUserInfoResponse(chatUser)
+	editMsg := tgbotapi.NewEditMessageText(upd.CallbackQuery.Message.Chat.ID, upd.CallbackQuery.Message.MessageID, outMsg.Text)
 	inlineKeyboard := MakeUserInfoInlineKeyboard(chatUser.ID)
 	editMsg.ReplyMarkup = &inlineKeyboard
 	bot.Send(editMsg)
