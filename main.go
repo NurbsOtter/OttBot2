@@ -1,53 +1,48 @@
 package main
 
 import (
+	"OttBot2/metrics"
 	"OttBot2/models"
 	"OttBot2/settings"
 	"OttBot2/telegram"
-	"OttBot2/webroutes"
-	"github.com/kataras/go-template/html"
-	"github.com/kataras/iris"
 )
 
-func hello(ctx *iris.Context) {
-	ctx.Write("Hello world!")
-}
 func main() {
-	models.MakeDB("./userdatabase.db")
 	settings.LoadSettings()
-	telegram.Register("\\/ping", settings.GetChannelID(), telegram.TestCmd)
-	telegram.Register(".*", settings.GetChannelID(), telegram.HandleUsers)
-	telegram.Register("^\\/info @\\D+", settings.GetControlID(), telegram.FindUserByUsername)
-	telegram.Register("^\\/warn @.+", settings.GetControlID(), telegram.WarnUserByUsername)
-	telegram.Register("^\\/find .+", settings.GetControlID(), telegram.LookupAlias)
-	telegram.Register("^\\/mods", 0, telegram.SummonMods)
-	telegram.Register("^\\/warn \\d+", settings.GetControlID(), telegram.WarnUserByID)
-	telegram.Register("^\\/ban \\d+", settings.GetControlID(), telegram.SetBanTarget)
-	telegram.Register("^\\/yes", settings.GetControlID(), telegram.ApplyBannination)
-	telegram.Register("^\\/no", settings.GetControlID(), telegram.ClearBotTarget)
-	telegram.Register("^\\/info \\d+", settings.GetControlID(), telegram.FindUserByUserID)
-	telegram.RegisterCallback("^\\/info \\d+", telegram.FindUserByUserID)
-	go telegram.InitBot(settings.GetBotToken())
-	api := iris.New()
-	api.StaticServe("./static/")
-	api.UseTemplate(html.New(html.Config{
-		Layout: "layout.html",
-	})).Directory("./templates", ".html")
-	api.Config.IsDevelopment = true
-	api.Get("/", webroutes.ServeIndex)
-	if settings.IsRegistrationAllowed() {
-		api.Post("/register", webroutes.AddUser)
-	}
-	api.Get("/login", webroutes.GetRenderIndex)
-	api.Get("/home", webroutes.GetRenderIndex)
-	api.Get("/logout", webroutes.GetLogout)
-	api.Post("/login", webroutes.GetLogin)
-	api.Get("/user/:id", webroutes.ShowUser)
-	api.Get("/users", webroutes.RenderSearchPage)
-	api.Post("/users/uname", webroutes.SearchByUName)
-	api.Post("/users/alias", webroutes.SearchByAlias)
-	api.Get("/userping/:id", webroutes.ToggleAllowedPing)
-	api.Post("/warn/:userID", webroutes.WarnUser)
-	//api.ListenLETSENCRYPT("127.0.0.1:443")
-	api.Listen(":8080")
+	models.MakeDB(settings.GetDBAddr())
+	metrics.StartUp()
+
+	//Any channel commands
+	telegram.Register(`^\/ping`, 0, telegram.TestCmd)
+	telegram.Register(`^\/mods`, 0, telegram.SummonMods)
+
+	//Main channel commands
+	telegram.Register(`^\/help`, settings.GetChannelID(), telegram.MainChannelHelp)
+	telegram.Register(`.*furaffinity\.net\/(?:view|full)\/(\d*)`, settings.GetChannelID(), telegram.GetFARating)
+	telegram.Register(`.*furrynetwork\.com/.*\?viewId=(\d*)`, settings.GetChannelID(), telegram.GetFNRating)
+	telegram.Register(`.*e621\.net/post/show/(\d*)`, settings.GetChannelID(), telegram.GetE621IDRating)
+	telegram.Register(`.*static1\.e621\.net/data/../../(.+?)\.`, settings.GetChannelID(), telegram.GetE621MD5Rating)
+	telegram.Register(`.*`, settings.GetChannelID(), telegram.HandleUsers)
+
+	//Control channel commands
+	telegram.Register(`^\/help`, settings.GetControlID(), telegram.ControlChannelHelp)
+	telegram.Register(`^\/info @.+`, settings.GetControlID(), telegram.FindUserByUsername)
+	telegram.Register(`^\/info \d+`, settings.GetControlID(), telegram.FindUserByUserID)
+	telegram.Register(`^\/warn @.+ .+`, settings.GetControlID(), telegram.WarnUserByUsername)
+	telegram.Register(`^\/warn \d+ .+`, settings.GetControlID(), telegram.WarnUserByID)
+	telegram.Register(`^\/find .+`, settings.GetControlID(), telegram.LookupAlias)
+	telegram.Register(`^\/status`, settings.GetControlID(), telegram.GetBotStatus)
+
+	//Callbacks
+	telegram.RegisterCallback(`^\/togglemods \d+`, telegram.ToggleMods)
+	telegram.RegisterCallback(`^\/getwarnings \d+`, telegram.DisplayWarnings)
+	telegram.RegisterCallback(`^\/getaliases \d+`, telegram.DisplayAliases)
+	telegram.RegisterCallback(`^\/ban \d+`, telegram.PreBan)
+	telegram.RegisterCallback(`^\/callbackinfo \d+`, telegram.CallbackInfo)
+	telegram.RegisterCallback(`^\/preconfirmban \d+`, telegram.PreConfirmBan)
+	telegram.RegisterCallback(`^\/confirmban \d+`, telegram.ConfirmBan)
+
+	telegram.RegisterNewMember(settings.GetChannelID(), telegram.HandleNewMember)
+	telegram.RegisterLeftMember(settings.GetChannelID(), telegram.HandleLeftMember)
+	telegram.InitBot(settings.GetBotToken())
 }

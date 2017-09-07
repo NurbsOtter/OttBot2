@@ -29,6 +29,9 @@ _testmain.go
 # External packages folder
 vendor/
 //OttBot2 Specific
-settings.json
+settings*.json
 *.sublime-*
 *.db*
+
+/.idea*
+*.bat

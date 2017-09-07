@@ -12,6 +12,7 @@ type ChatUser struct {
 	UserName    string
 	TgID        int64
 	PingAllowed bool
+	ActiveUser  bool
 }
 type UserAlias struct {
 	ID         int64
@@ -22,7 +23,7 @@ type UserAlias struct {
 
 func ChatUserFromID(inID int64) *ChatUser {
 	newUser := &ChatUser{}
-	err := db.QueryRow("SELECT id,userName,tgID,pingAllowed FROM chatUser WHERE id = ?", inID).Scan(&newUser.ID, &newUser.UserName, &newUser.TgID, &newUser.PingAllowed)
+	err := db.QueryRow("SELECT id,userName,tgID,pingAllowed,activeUser FROM chatUser WHERE id = ?", inID).Scan(&newUser.ID, &newUser.UserName, &newUser.TgID, &newUser.PingAllowed, &newUser.ActiveUser)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil
@@ -33,13 +34,13 @@ func ChatUserFromID(inID int64) *ChatUser {
 	}
 }
 func ChatUserFromTGID(tgID int, userName string) *ChatUser {
-	stmt, err := db.Prepare("SELECT id,userName,tgID,pingAllowed FROM chatUser WHERE tgID = ?")
+	stmt, err := db.Prepare("SELECT id,userName,tgID,pingAllowed,activeUser FROM chatUser WHERE tgID = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 	foundUser := &ChatUser{}
-	err = stmt.QueryRow(tgID).Scan(&foundUser.ID, &foundUser.UserName, &foundUser.TgID, &foundUser.PingAllowed)
+	err = stmt.QueryRow(tgID).Scan(&foundUser.ID, &foundUser.UserName, &foundUser.TgID, &foundUser.PingAllowed, &foundUser.ActiveUser)
 	switch {
 	case err == sql.ErrNoRows:
 		insStmt, err := db.Prepare("INSERT INTO chatUser(userName,tgID) VALUES(?,?)")
@@ -48,7 +49,7 @@ func ChatUserFromTGID(tgID int, userName string) *ChatUser {
 		}
 		defer stmt.Close()
 		insStmt.Exec(userName, tgID)
-		stmt.QueryRow(tgID).Scan(&foundUser.ID, &foundUser.UserName, &foundUser.TgID, &foundUser.PingAllowed)
+		err = stmt.QueryRow(tgID).Scan(&foundUser.ID, &foundUser.UserName, &foundUser.TgID, &foundUser.PingAllowed, &foundUser.ActiveUser)
 		return foundUser
 	case err != nil:
 		panic(err)
@@ -61,16 +62,19 @@ func ChatUserFromTGID(tgID int, userName string) *ChatUser {
 		}
 		foundUser.UserName = userName
 	}
+	if foundUser.ActiveUser == false {
+		SetActiveUserState(foundUser.ID, true)
+	}
 	return foundUser
 }
 func ChatUserFromTGIDNoUpd(tgID int) *ChatUser {
-	stmt, err := db.Prepare("SELECT id,userName,tgID,pingAllowed FROM chatUser WHERE tgID = ?")
+	stmt, err := db.Prepare("SELECT id,userName,tgID,pingAllowed,activeUser FROM chatUser WHERE tgID = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 	foundUser := &ChatUser{}
-	err = stmt.QueryRow(tgID).Scan(&foundUser.ID, &foundUser.UserName, &foundUser.TgID, &foundUser.PingAllowed)
+	err = stmt.QueryRow(tgID).Scan(&foundUser.ID, &foundUser.UserName, &foundUser.TgID, &foundUser.PingAllowed, &foundUser.ActiveUser)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil
@@ -111,13 +115,13 @@ func UpdateAliases(firstName string, lastName string, userID int64) {
 
 func SearchUserByUsername(userName string) *ChatUser {
 	fmt.Println(userName)
-	stmt, err := db.Prepare("SELECT id,userName,tgID,pingAllowed FROM chatUser WHERE lower(userName) = ?")
+	stmt, err := db.Prepare("SELECT id,userName,tgID,pingAllowed,activeUser FROM chatUser WHERE lower(userName) = ?")
 	if err != nil {
 		panic(err)
 	}
 	defer stmt.Close()
 	foundUser := &ChatUser{}
-	err = stmt.QueryRow(userName).Scan(&foundUser.ID, &foundUser.UserName, &foundUser.TgID, &foundUser.PingAllowed)
+	err = stmt.QueryRow(userName).Scan(&foundUser.ID, &foundUser.UserName, &foundUser.TgID, &foundUser.PingAllowed, &foundUser.ActiveUser)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil
@@ -146,7 +150,7 @@ func GetLatestAliasFromUserID(userID int64) *UserAlias {
 	return foundAlias
 
 }
-func (u *ChatUser) GetAliases() []UserAlias {
+func GetAliases(u *ChatUser) []UserAlias {
 	rows, err := db.Query("SELECT id,name,userID,changeDate FROM aliases WHERE userID = ?", u.ID)
 	var outAliases []UserAlias
 	switch {
@@ -165,7 +169,7 @@ func (u *ChatUser) GetAliases() []UserAlias {
 }
 func LookupAlias(query string) []ChatUser {
 	newQuery := "%" + strings.ToLower(query) + "%"
-	rows, err := db.Query("SELECT DISTINCT chatUser.id,chatUser.userName,chatUser.tgID,chatUser.pingAllowed FROM chatUser JOIN aliases ON aliases.userID = chatUser.id WHERE lower(aliases.name) LIKE ? LIMIT 20", newQuery)
+	rows, err := db.Query("SELECT DISTINCT chatUser.id,chatUser.userName,chatUser.tgID,chatUser.pingAllowed,chatUser.activeUser FROM chatUser JOIN aliases ON aliases.userID = chatUser.id WHERE lower(aliases.name) LIKE ? LIMIT 20", newQuery)
 	var outUsers []ChatUser
 	switch {
 	case err == sql.ErrNoRows:
@@ -177,7 +181,7 @@ func LookupAlias(query string) []ChatUser {
 	defer rows.Close()
 	for rows.Next() {
 		newUser := ChatUser{}
-		rows.Scan(&newUser.ID, &newUser.UserName, &newUser.TgID, &newUser.PingAllowed)
+		rows.Scan(&newUser.ID, &newUser.UserName, &newUser.TgID, &newUser.PingAllowed, &newUser.ActiveUser)
 		if newUser.UserName == "" {
 			newUser.UserName = "None"
 		}
@@ -203,9 +207,22 @@ func SearchAliases(query string) []UserAlias {
 	}
 	return outAliases
 }
-func (u *ChatUser) ToggleModPing() {
-	newRights := !u.PingAllowed
-	_, err := db.Exec("UPDATE chatUser SET pingAllowed=? WHERE id=?", newRights, u.ID)
+
+//func (u *ChatUser) ToggleModPing() { //Refactor this for use via command
+//	newRights := !u.PingAllowed
+//	_, err := db.Exec("UPDATE chatUser SET pingAllowed=? WHERE id=?", newRights, u.ID)
+//	if err != nil {
+//		panic(err)
+//	}
+//}
+func SetModPing(userId int64, status bool) {
+	_, err := db.Exec("UPDATE chatUser SET pingAllowed=? WHERE id=?", status, userId)
+	if err != nil {
+		panic(err)
+	}
+}
+func SetActiveUserState(userId int64, status bool) {
+	_, err := db.Exec("UPDATE chatUser SET activeUser=? WHERE id=?", status, userId)
 	if err != nil {
 		panic(err)
 	}
