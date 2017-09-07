@@ -161,7 +161,7 @@ func CallbackInfo(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	chatUser := models.ChatUserFromID(userId)
 	infoMessage := GetUserInfoResponse(chatUser)
 	editMsg := tgbotapi.NewEditMessageText(upd.CallbackQuery.Message.Chat.ID, upd.CallbackQuery.Message.MessageID, infoMessage.Text)
-	inlineKeyboard := MakeUserInfoInlineKeyboardRefreshWarnButton(chatUser.ID)
+	inlineKeyboard := MakeUserInfoInlineKeyboard(chatUser.ID)
 	editMsg.ReplyMarkup = &inlineKeyboard
 	bot.Send(editMsg)
 }
@@ -252,8 +252,11 @@ func LookupAlias(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 			outMsg := tgbotapi.NewMessage(settings.GetControlID(), "No Aliases found")
 			bot.Send(outMsg)
 		} else {
-			//No idea what kind of cap on responses this will run into in the future
+			//No idea what kind of cap on responses this will run into in the future, seems to be max 8 buttons
 			outMsg := tgbotapi.NewMessage(settings.GetControlID(), "Found Users:")
+			if len(foundAliases) > 8 {
+				foundAliases = foundAliases[:8]
+			}
 			outMsg.ReplyMarkup = MakeAliasInlineKeyboard(foundAliases)
 			bot.Send(outMsg)
 		}
@@ -269,7 +272,12 @@ func MakeAliasInlineKeyboard(aliases []models.ChatUser) tgbotapi.InlineKeyboardM
 		newButt := tgbotapi.NewInlineKeyboardButtonData(latestID.Name, btnCmd)
 		aliasButtons = append(aliasButtons, newButt)
 	}
-	return tgbotapi.NewInlineKeyboardMarkup(aliasButtons)
+
+	if len(aliasButtons) <= 4 {
+		return tgbotapi.NewInlineKeyboardMarkup(aliasButtons)
+	} else {
+		return tgbotapi.NewInlineKeyboardMarkup(aliasButtons[:4], aliasButtons[4:])
+	}
 }
 
 //Handles the first step in the ban process by displaying the target to a user
