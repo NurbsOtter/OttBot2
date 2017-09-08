@@ -16,6 +16,24 @@ func HandleUsers(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	fmt.Println(foundUser)
 }
 
+//Get user information by telegram ID
+func FindUserByUserID(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	if upd.Message.Chat.ID == settings.GetControlID() {
+		userId := upd.Message.Text[5:]
+		userId = strings.Trim(userId, " ")
+		usrID, err := strconv.ParseInt(userId, 10, 64)
+		if err != nil {
+			newMsg := tgbotapi.NewMessage(upd.Message.Chat.ID, "Error parsing userID. Make sure it's an actual number!")
+			fmt.Println(userId)
+			fmt.Println(err)
+			bot.Send(newMsg)
+			return
+		}
+		user := models.ChatUserFromTGIDNoUpd(int(usrID))
+		bot.Send(GetUserInfoResponse(user))
+	}
+}
+
 //Get user information by username
 func FindUserByUsername(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	if upd.Message.Chat.ID == settings.GetControlID() {
@@ -26,19 +44,15 @@ func FindUserByUsername(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		if user != nil {
 			curAlias := models.GetLatestAliasFromUserID(user.ID)
 			fmt.Println(user)
-			outmsg := fmt.Sprintf("UserID: %d\nCurrent Name:%s\n", user.TgID, curAlias.Name)
-			for _, warn := range models.GetUsersWarnings(user) {
-				outmsg += warn.WarnDate.Format("[2006-Jan-02] ") + warn.WarningText + "\n"
-			}
+			outmsg := fmt.Sprintf("User ID: %d\nCurrent Name: %s\nActive User: %t\nMod Ping: %t\n", user.TgID, curAlias.Name, user.ActiveUser, user.PingAllowed)
 			newMsg := tgbotapi.NewMessage(settings.GetControlID(), outmsg)
+			newMsg.ReplyMarkup = MakeUserInfoInlineKeyboard(user.ID)
 			bot.Send(newMsg)
 		} else {
 			newMsg := tgbotapi.NewMessage(settings.GetControlID(), "User not found.")
 			bot.Send(newMsg)
-			return
+			bot.Send(GetUserInfoResponse(user))
 		}
-		user := models.ChatUserFromTGIDNoUpd(int(usrID))
-		bot.Send(GetUserInfoResponse(user))
 	}
 }
 
