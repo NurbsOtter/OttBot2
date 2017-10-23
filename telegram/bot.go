@@ -71,7 +71,7 @@ func ProcessMessage(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	for _, cmd := range commands {
 		if cmd.MatchCmd.Match([]byte(message)) {
 			if cmd.Chan == upd.Message.Chat.ID || cmd.Chan == 0 {
-				cmd.HandleFunc(upd, bot)
+				go cmd.HandleFunc(upd, bot)
 			}
 		}
 	}
@@ -83,7 +83,7 @@ func ProcessNewMember(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	}
 	for _, cmd := range newmembercommands {
 		if cmd.Chan == upd.Message.Chat.ID || cmd.Chan == 0 {
-			cmd.HandleFunc(upd, bot)
+			go cmd.HandleFunc(upd, bot)
 		}
 	}
 }
@@ -94,7 +94,7 @@ func ProcessLeftMember(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	}
 	for _, cmd := range leftmembercommands {
 		if cmd.Chan == upd.Message.Chat.ID || cmd.Chan == 0 {
-			cmd.HandleFunc(upd, bot)
+			go cmd.HandleFunc(upd, bot)
 		}
 	}
 }
@@ -105,7 +105,7 @@ func ProcessCallback(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	}
 	for _, cback := range callbacks {
 		if cback.MatchCmd.Match([]byte(data)) {
-			cback.HandleFunc(upd, bot)
+			go cback.HandleFunc(upd, bot)
 		}
 	}
 }
