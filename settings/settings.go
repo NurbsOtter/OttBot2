@@ -12,6 +12,7 @@ type Settings struct {
 	AllowReg           bool
 	EightBallResponses []string
 	SQLConnectString   string
+	RandomChance       int64
 }
 
 var settings Settings
@@ -40,4 +41,7 @@ func GetDBAddr() string {
 }
 func IsRegistrationAllowed() bool {
 	return settings.AllowReg
+}
+func GetRandomChance() int64 {
+	return settings.RandomChance
 }

@@ -5,6 +5,7 @@ import (
 	"OttBot2/settings"
 	"fmt"
 	"gopkg.in/telegram-bot-api.v4"
+	"math/rand"
 	"strconv"
 	"strings"
 )
@@ -14,6 +15,31 @@ func HandleUsers(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	foundUser := models.ChatUserFromTGID(upd.Message.From.ID, upd.Message.From.UserName)
 	models.UpdateAliases(upd.Message.From.FirstName, upd.Message.From.LastName, foundUser.ID)
 	fmt.Println(foundUser)
+}
+
+func HandleMarkov(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	if upd.Message.Chat.ID == settings.GetChannelID() {
+		//Don't continue if message is a command or directed at the bot
+		if strings.HasPrefix(upd.Message.Text, "/") {
+			return
+		}
+		if strings.HasPrefix(strings.ToLower(upd.Message.Text), "@robosergal_bot") {
+			return
+		}
+
+		models.LearnMarkov(upd.Message.Text)
+		if rand.Intn(int(settings.GetRandomChance())) == 0 {
+			tgbotapi.NewChatAction(settings.GetChannelID(), tgbotapi.ChatTyping)
+			response := models.RandomResponse(upd.Message.Text)
+			var message string
+			if response == "" {
+				return
+			}
+			message = getUsernameOrFirstName(upd) + ": " + response
+			newMess := tgbotapi.NewMessage(settings.GetChannelID(), message)
+			bot.Send(newMess)
+		}
+	}
 }
 
 //Get user information by telegram ID
@@ -440,4 +466,42 @@ func ToggleMods(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	inlineKeyboard := MakeUserInfoInlineKeyboard(chatUser.ID)
 	editMsg.ReplyMarkup = &inlineKeyboard
 	bot.Send(editMsg)
+}
+
+func MarkovTalkAbout(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	if upd.Message.Chat.ID == settings.GetChannelID() {
+		if len(upd.Message.Text) < 6 {
+			message := getUsernameOrFirstName(upd) + ": make sure you put what you want to ask about after the /ask command!"
+			newMess := tgbotapi.NewMessage(settings.GetChannelID(), message)
+			bot.Send(newMess)
+		}
+		tgbotapi.NewChatAction(settings.GetChannelID(), tgbotapi.ChatTyping)
+		keyword := upd.Message.Text[5:]
+		keyword = strings.Trim(keyword, " ")
+		response := models.GenerateMarkovResponse(keyword)
+		var message string
+		if response == "" {
+			message = "I haven't learned that word yet."
+		} else {
+			message = getUsernameOrFirstName(upd) + ": " + response
+		}
+		newMess := tgbotapi.NewMessage(settings.GetChannelID(), message)
+		bot.Send(newMess)
+	}
+}
+
+func getUsernameOrFirstName(upd tgbotapi.Update) string {
+	if len(upd.Message.From.UserName) < 1 {
+		return upd.Message.From.FirstName
+	} else {
+		return "@" + upd.Message.From.UserName
+	}
+}
+
+func MarkovCount(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	if upd.Message.Chat.ID == settings.GetControlID() {
+		message := "Current number of chains in database: " + strconv.Itoa(models.MarkovCount())
+		newMess := tgbotapi.NewMessage(settings.GetControlID(), message)
+		bot.Send(newMess)
+	}
 }
