@@ -29,14 +29,13 @@ func HandleMarkov(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 
 		models.LearnMarkov(upd.Message.Text)
 		if rand.Intn(int(settings.GetRandomChance())) == 0 {
+			fmt.Println("Randomly responding to message '%s'", upd.Message.Text)
 			tgbotapi.NewChatAction(settings.GetChannelID(), tgbotapi.ChatTyping)
 			response := models.RandomResponse(upd.Message.Text)
-			var message string
 			if response == "" {
 				return
 			}
-			message = getUsernameOrFirstName(upd) + ": " + response
-			newMess := tgbotapi.NewMessage(settings.GetChannelID(), message)
+			newMess := tgbotapi.NewMessage(settings.GetChannelID(), response)
 			bot.Send(newMess)
 		}
 	}

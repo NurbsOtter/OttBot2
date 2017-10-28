@@ -283,7 +283,6 @@ func isJoiner(word string) bool {
 }
 
 func GenerateMarkovResponse(startingWord string) string {
-	rand.Seed(time.Now().Unix())
 	chains := getMatchingChains(startingWord)
 	if len(chains) == 0 {
 		return ""

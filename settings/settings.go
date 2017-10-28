@@ -6,13 +6,12 @@ import (
 )
 
 type Settings struct {
-	BotToken           string
-	ChannelID          int64
-	ControlChannelID   int64
-	AllowReg           bool
-	EightBallResponses []string
-	SQLConnectString   string
-	RandomChance       int64
+	BotToken         string
+	ChannelID        int64
+	ControlChannelID int64
+	SQLConnectString string
+	RandomChance     int64
+	DatabaseTimeout  string
 }
 
 var settings Settings
@@ -39,9 +38,9 @@ func GetControlID() int64 {
 func GetDBAddr() string {
 	return settings.SQLConnectString
 }
-func IsRegistrationAllowed() bool {
-	return settings.AllowReg
-}
 func GetRandomChance() int64 {
 	return settings.RandomChance
+}
+func GetDatabaseTimeout() string {
+	return settings.DatabaseTimeout
 }

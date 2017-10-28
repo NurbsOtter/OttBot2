@@ -5,12 +5,15 @@ import (
 	"OttBot2/models"
 	"OttBot2/settings"
 	"OttBot2/telegram"
+	"math/rand"
+	"time"
 )
 
 func main() {
 	settings.LoadSettings()
 	models.MakeDB(settings.GetDBAddr())
 	metrics.StartUp()
+	rand.Seed(time.Now().UnixNano())
 
 	//Any channel commands
 	telegram.Register(`^\/ping`, 0, telegram.TestCmd)
