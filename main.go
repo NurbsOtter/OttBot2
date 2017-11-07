@@ -21,7 +21,7 @@ func main() {
 
 	//Main channel commands
 	telegram.Register(`^\/help`, settings.GetChannelID(), telegram.MainChannelHelp)
-	telegram.Register(`\/ask .+`, settings.GetChannelID(), telegram.MarkovTalkAbout)
+	telegram.Register(`^\/ask .+`, settings.GetChannelID(), telegram.MarkovTalkAbout)
 	telegram.Register(`.*furaffinity\.net\/(?:view|full)\/(\d*)`, settings.GetChannelID(), telegram.GetFARating)
 	telegram.Register(`.*furrynetwork\.com/.*\?viewId=(\d*)`, settings.GetChannelID(), telegram.GetFNRating)
 	telegram.Register(`.*e621\.net/post/show/(\d*)`, settings.GetChannelID(), telegram.GetE621IDRating)
@@ -37,7 +37,7 @@ func main() {
 	telegram.Register(`^\/warn \d+ .+`, settings.GetControlID(), telegram.WarnUserByID)
 	telegram.Register(`^\/find .+`, settings.GetControlID(), telegram.LookupAlias)
 	telegram.Register(`^\/status`, settings.GetControlID(), telegram.GetBotStatus)
-	telegram.Register(`\/count`, settings.GetControlID(), telegram.MarkovCount)
+	telegram.Register(`^\/count`, settings.GetControlID(), telegram.MarkovCount)
 
 	//Callbacks
 	telegram.RegisterCallback(`^\/togglemods \d+`, telegram.ToggleMods)
@@ -47,6 +47,7 @@ func main() {
 	telegram.RegisterCallback(`^\/callbackinfo \d+`, telegram.CallbackInfo)
 	telegram.RegisterCallback(`^\/preconfirmban \d+`, telegram.PreConfirmBan)
 	telegram.RegisterCallback(`^\/confirmban \d+`, telegram.ConfirmBan)
+	telegram.RegisterCallback(`^\/togglemarkov \d+`, telegram.ToggleMarkov)
 
 	telegram.RegisterNewMember(settings.GetChannelID(), telegram.HandleNewMember)
 	telegram.RegisterLeftMember(settings.GetChannelID(), telegram.HandleLeftMember)

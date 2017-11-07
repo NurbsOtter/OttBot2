@@ -5,7 +5,6 @@ import (
 	"OttBot2/settings"
 	"fmt"
 	"gopkg.in/telegram-bot-api.v4"
-	"math/rand"
 	"strconv"
 	"strings"
 )
@@ -15,30 +14,6 @@ func HandleUsers(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	foundUser := models.ChatUserFromTGID(upd.Message.From.ID, upd.Message.From.UserName)
 	models.UpdateAliases(upd.Message.From.FirstName, upd.Message.From.LastName, foundUser.ID)
 	fmt.Println(foundUser)
-}
-
-func HandleMarkov(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
-	if upd.Message.Chat.ID == settings.GetChannelID() {
-		//Don't continue if message is a command or directed at the bot
-		if strings.HasPrefix(upd.Message.Text, "/") {
-			return
-		}
-		if strings.HasPrefix(strings.ToLower(upd.Message.Text), "@robosergal_bot") {
-			return
-		}
-
-		models.LearnMarkov(upd.Message.Text)
-		if rand.Intn(int(settings.GetRandomChance())) == 0 {
-			fmt.Println("Randomly responding to message '%s'", upd.Message.Text)
-			tgbotapi.NewChatAction(settings.GetChannelID(), tgbotapi.ChatTyping)
-			response := models.RandomResponse(upd.Message.Text)
-			if response == "" {
-				return
-			}
-			newMess := tgbotapi.NewMessage(settings.GetChannelID(), response)
-			bot.Send(newMess)
-		}
-	}
 }
 
 //Get user information by telegram ID
@@ -69,8 +44,12 @@ func FindUserByUsername(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		if user != nil {
 			curAlias := models.GetLatestAliasFromUserID(user.ID)
 			fmt.Println(user)
-			outmsg := fmt.Sprintf("User ID: %d\nCurrent Name: %s\nActive User: %t\nMod Ping: %t\n", user.TgID, curAlias.Name, user.ActiveUser, user.PingAllowed)
-			newMsg := tgbotapi.NewMessage(settings.GetControlID(), outmsg)
+			outMsg := fmt.Sprintf("User ID: %d", user.TgID)
+			if user.UserName != "" {
+				outMsg += fmt.Sprintf("\nUsername: @%s", user.UserName)
+			}
+			outMsg += fmt.Sprintf("\nCurrent name: %s\nActive user: %t\nMod ping: %t\nMarkov ask: %t\n", curAlias.Name, user.ActiveUser, user.PingAllowed, user.MarkovAskAllowed)
+			newMsg := tgbotapi.NewMessage(settings.GetControlID(), outMsg)
 			newMsg.ReplyMarkup = MakeUserInfoInlineKeyboard(user.ID)
 			bot.Send(newMsg)
 		} else {
@@ -86,12 +65,11 @@ func GetUserInfoResponse(user *models.ChatUser) tgbotapi.MessageConfig {
 	if user != nil {
 		curAlias := models.GetLatestAliasFromUserID(user.ID)
 		fmt.Println(user)
-
 		outMsg := fmt.Sprintf("User ID: %d", user.TgID)
 		if user.UserName != "" {
 			outMsg += fmt.Sprintf("\nUsername: @%s", user.UserName)
 		}
-		outMsg += fmt.Sprintf("\nCurrent name: %s\nActive user: %t\nMod ping: %t\n", curAlias.Name, user.ActiveUser, user.PingAllowed)
+		outMsg += fmt.Sprintf("\nCurrent name: %s\nActive user: %t\nMod ping: %t\nMarkov ask: %t\n", curAlias.Name, user.ActiveUser, user.PingAllowed, user.MarkovAskAllowed)
 		newMsg := tgbotapi.NewMessage(settings.GetControlID(), outMsg)
 		newMsg.ReplyMarkup = MakeUserInfoInlineKeyboard(user.ID)
 		return newMsg
@@ -109,11 +87,14 @@ func MakeUserInfoInlineKeyboard(userId int64) tgbotapi.InlineKeyboardMarkup {
 	aliasButt := tgbotapi.NewInlineKeyboardButtonData("View aliases", aliasCmd)
 	modsCmd := fmt.Sprintf("/togglemods %d", userId)
 	modsButt := tgbotapi.NewInlineKeyboardButtonData("Toggle /mods", modsCmd)
+	markovCmd := fmt.Sprintf("/togglemarkov %d", userId)
+	markovButt := tgbotapi.NewInlineKeyboardButtonData("Toggle /ask", markovCmd)
 	banCmd := fmt.Sprintf("/ban %d", userId)
 	banButt := tgbotapi.NewInlineKeyboardButtonData("Ban user", banCmd)
 	keyboardRow1 := tgbotapi.NewInlineKeyboardRow(warnButt, aliasButt)
-	keyboardRow2 := tgbotapi.NewInlineKeyboardRow(modsButt, banButt)
-	return tgbotapi.NewInlineKeyboardMarkup(keyboardRow1, keyboardRow2)
+	keyboardRow2 := tgbotapi.NewInlineKeyboardRow(modsButt, markovButt)
+	keyboardRow3 := tgbotapi.NewInlineKeyboardRow(banButt)
+	return tgbotapi.NewInlineKeyboardMarkup(keyboardRow1, keyboardRow2, keyboardRow3)
 }
 
 //Helper method to generate the buttons for an info request after view warnings button is pressed
@@ -124,11 +105,14 @@ func MakeUserInfoInlineKeyboardRefreshWarnButton(userId int64) tgbotapi.InlineKe
 	aliasButt := tgbotapi.NewInlineKeyboardButtonData("View aliases", aliasCmd)
 	modsCmd := fmt.Sprintf("/togglemods %d", userId)
 	modsButt := tgbotapi.NewInlineKeyboardButtonData("Toggle /mods", modsCmd)
+	markovCmd := fmt.Sprintf("/togglemarkov %d", userId)
+	markovButt := tgbotapi.NewInlineKeyboardButtonData("Toggle /ask", markovCmd)
 	banCmd := fmt.Sprintf("/ban %d", userId)
 	banButt := tgbotapi.NewInlineKeyboardButtonData("Ban user", banCmd)
 	keyboardRow1 := tgbotapi.NewInlineKeyboardRow(warnButt, aliasButt)
-	keyboardRow2 := tgbotapi.NewInlineKeyboardRow(modsButt, banButt)
-	return tgbotapi.NewInlineKeyboardMarkup(keyboardRow1, keyboardRow2)
+	keyboardRow2 := tgbotapi.NewInlineKeyboardRow(modsButt, markovButt)
+	keyboardRow3 := tgbotapi.NewInlineKeyboardRow(banButt)
+	return tgbotapi.NewInlineKeyboardMarkup(keyboardRow1, keyboardRow2, keyboardRow3)
 }
 
 //Helper method to generate the buttons for an info request after view aliases button is pressed
@@ -139,11 +123,14 @@ func MakeUserInfoInlineKeyboardRefreshAliasButton(userId int64) tgbotapi.InlineK
 	aliasButt := tgbotapi.NewInlineKeyboardButtonData("Refresh aliases", aliasCmd)
 	modsCmd := fmt.Sprintf("/togglemods %d", userId)
 	modsButt := tgbotapi.NewInlineKeyboardButtonData("Toggle /mods", modsCmd)
+	markovCmd := fmt.Sprintf("/togglemarkov %d", userId)
+	markovButt := tgbotapi.NewInlineKeyboardButtonData("Toggle /ask", markovCmd)
 	banCmd := fmt.Sprintf("/ban %d", userId)
 	banButt := tgbotapi.NewInlineKeyboardButtonData("Ban user", banCmd)
 	keyboardRow1 := tgbotapi.NewInlineKeyboardRow(warnButt, aliasButt)
-	keyboardRow2 := tgbotapi.NewInlineKeyboardRow(modsButt, banButt)
-	return tgbotapi.NewInlineKeyboardMarkup(keyboardRow1, keyboardRow2)
+	keyboardRow2 := tgbotapi.NewInlineKeyboardRow(modsButt, markovButt)
+	keyboardRow3 := tgbotapi.NewInlineKeyboardRow(banButt)
+	return tgbotapi.NewInlineKeyboardMarkup(keyboardRow1, keyboardRow2, keyboardRow3)
 }
 
 //Callback handler to update a get user info response to add warnings for the user
@@ -465,42 +452,4 @@ func ToggleMods(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	inlineKeyboard := MakeUserInfoInlineKeyboard(chatUser.ID)
 	editMsg.ReplyMarkup = &inlineKeyboard
 	bot.Send(editMsg)
-}
-
-func MarkovTalkAbout(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
-	if upd.Message.Chat.ID == settings.GetChannelID() {
-		if len(upd.Message.Text) < 6 {
-			message := getUsernameOrFirstName(upd) + ": make sure you put what you want to ask about after the /ask command!"
-			newMess := tgbotapi.NewMessage(settings.GetChannelID(), message)
-			bot.Send(newMess)
-		}
-		tgbotapi.NewChatAction(settings.GetChannelID(), tgbotapi.ChatTyping)
-		keyword := upd.Message.Text[5:]
-		keyword = strings.Trim(keyword, " ")
-		response := models.GenerateMarkovResponse(keyword)
-		var message string
-		if response == "" {
-			message = "I haven't learned that word yet."
-		} else {
-			message = getUsernameOrFirstName(upd) + ": " + response
-		}
-		newMess := tgbotapi.NewMessage(settings.GetChannelID(), message)
-		bot.Send(newMess)
-	}
-}
-
-func getUsernameOrFirstName(upd tgbotapi.Update) string {
-	if len(upd.Message.From.UserName) < 1 {
-		return upd.Message.From.FirstName
-	} else {
-		return "@" + upd.Message.From.UserName
-	}
-}
-
-func MarkovCount(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
-	if upd.Message.Chat.ID == settings.GetControlID() {
-		message := "Current number of chains in database: " + strconv.Itoa(models.MarkovCount())
-		newMess := tgbotapi.NewMessage(settings.GetControlID(), message)
-		bot.Send(newMess)
-	}
 }

@@ -3,7 +3,8 @@ CREATE TABLE `chatUser` (
 	`userName` text CHARACTER SET utf8mb4,
 	`tgID` int NOT NULL,
 	`pingAllowed` tinyint(1) NOT NULL DEFAULT '1',
-	`activeUser` tinyint(1) NOT NULL DEFAULT '1'
+	`activeUser` tinyint(1) NOT NULL DEFAULT '1',
+	`MarkovAskAllowed` tinyint(1) NOT NULL DEFAULT '1'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 CREATE TABLE `aliases` (
 	`id` int PRIMARY KEY AUTO_INCREMENT NOT NULL,
