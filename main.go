@@ -49,7 +49,5 @@ func main() {
 	telegram.RegisterCallback(`^\/confirmban \d+`, telegram.ConfirmBan)
 	telegram.RegisterCallback(`^\/togglemarkov \d+`, telegram.ToggleMarkov)
 
-	telegram.RegisterNewMember(settings.GetChannelID(), telegram.HandleNewMember)
-	telegram.RegisterLeftMember(settings.GetChannelID(), telegram.HandleLeftMember)
 	telegram.InitBot(settings.GetBotToken())
 }

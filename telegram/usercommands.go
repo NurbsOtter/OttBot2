@@ -48,7 +48,7 @@ func FindUserByUsername(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 			if user.UserName != "" {
 				outMsg += fmt.Sprintf("\nUsername: @%s", user.UserName)
 			}
-			outMsg += fmt.Sprintf("\nCurrent name: %s\nActive user: %t\nMod ping: %t\nMarkov ask: %t\n", curAlias.Name, user.ActiveUser, user.PingAllowed, user.MarkovAskAllowed)
+			outMsg += fmt.Sprintf("\nCurrent name: %s\nMod ping: %t\nMarkov ask: %t\n", curAlias.Name, user.PingAllowed, user.MarkovAskAllowed)
 			newMsg := tgbotapi.NewMessage(settings.GetControlID(), outMsg)
 			newMsg.ReplyMarkup = MakeUserInfoInlineKeyboard(user.ID)
 			bot.Send(newMsg)
@@ -69,7 +69,7 @@ func GetUserInfoResponse(user *models.ChatUser) tgbotapi.MessageConfig {
 		if user.UserName != "" {
 			outMsg += fmt.Sprintf("\nUsername: @%s", user.UserName)
 		}
-		outMsg += fmt.Sprintf("\nCurrent name: %s\nActive user: %t\nMod ping: %t\nMarkov ask: %t\n", curAlias.Name, user.ActiveUser, user.PingAllowed, user.MarkovAskAllowed)
+		outMsg += fmt.Sprintf("\nCurrent name: %s\nMod ping: %t\nMarkov ask: %t\n", curAlias.Name, user.PingAllowed, user.MarkovAskAllowed)
 		newMsg := tgbotapi.NewMessage(settings.GetControlID(), outMsg)
 		newMsg.ReplyMarkup = MakeUserInfoInlineKeyboard(user.ID)
 		return newMsg
@@ -397,8 +397,6 @@ func ConfirmBan(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	banConfig.ChatID = settings.GetChannelID()
 	banConfig.UserID = int(foundUser.TgID)
 	bot.KickChatMember(banConfig)
-	models.SetActiveUserState(userId, false)
-	foundUser.ActiveUser = false
 	infoMessage := GetUserInfoResponse(foundUser)
 	outMsg := infoMessage.Text
 	outMsg += "\nUser banned by "
@@ -410,23 +408,6 @@ func ConfirmBan(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	outMsg += " TGID: " + strconv.Itoa(upd.CallbackQuery.From.ID)
 	editMsg := tgbotapi.NewEditMessageText(upd.CallbackQuery.Message.Chat.ID, upd.CallbackQuery.Message.MessageID, outMsg)
 	bot.Send(editMsg)
-}
-
-//Handles member join events
-func HandleNewMember(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
-	if upd.Message.Chat.ID == settings.GetChannelID() {
-		foundUser := models.ChatUserFromTGID(upd.Message.NewChatMember.ID, upd.Message.NewChatMember.UserName)
-		models.UpdateAliases(upd.Message.NewChatMember.FirstName, upd.Message.NewChatMember.LastName, foundUser.ID)
-	}
-}
-
-//Handles member left events
-func HandleLeftMember(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
-	if upd.Message.Chat.ID == settings.GetChannelID() {
-		foundUser := models.ChatUserFromTGID(upd.Message.LeftChatMember.ID, upd.Message.LeftChatMember.UserName)
-		models.UpdateAliases(upd.Message.LeftChatMember.FirstName, upd.Message.LeftChatMember.LastName, foundUser.ID)
-		models.SetActiveUserState(foundUser.ID, false)
-	}
 }
 
 //Handles toggling of a user's ability to use /mods
