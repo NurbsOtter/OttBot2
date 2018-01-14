@@ -393,7 +393,7 @@ func ConfirmBan(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		panic(err)
 	}
 	foundUser := models.ChatUserFromID(userId)
-	banConfig := tgbotapi.ChatMemberConfig{}
+	banConfig := tgbotapi.KickChatMemberConfig{}
 	banConfig.ChatID = settings.GetChannelID()
 	banConfig.UserID = int(foundUser.TgID)
 	bot.KickChatMember(banConfig)

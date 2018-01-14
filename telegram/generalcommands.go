@@ -5,13 +5,14 @@ import (
 	"OttBot2/models"
 	"OttBot2/settings"
 	"gopkg.in/telegram-bot-api.v4"
+	"math/rand"
 	"regexp"
 	"strconv"
 )
 
 //Help response for main channel
 func MainChannelHelp(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
-	newMsg := tgbotapi.NewMessage(settings.GetChannelID(), "/mods - Call the chat moderators\n/ask <word> - Ask the bot about a word")
+	newMsg := tgbotapi.NewMessage(settings.GetChannelID(), "/mods - Call the chat moderators\n/ask <word> - Ask the bot about a word\n<anything> c/d - Ask the bot the hard questions in life")
 	bot.Send(newMsg)
 }
 
@@ -120,6 +121,17 @@ func GetE621MD5Rating(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 				newFwd := tgbotapi.NewForward(settings.GetControlID(), upd.Message.Chat.ID, upd.Message.MessageID)
 				bot.Send(newFwd)
 			}
+		}
+	}
+}
+
+//c/d questions
+func YesOrNo(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	if upd.Message.Chat.ID == settings.GetChannelID() {
+		if rand.Intn(2) == 0 {
+			bot.Send(tgbotapi.NewMessage(settings.GetChannelID(), "c"))
+		} else {
+			bot.Send(tgbotapi.NewMessage(settings.GetChannelID(), "d"))
 		}
 	}
 }
