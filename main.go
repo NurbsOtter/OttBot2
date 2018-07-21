@@ -5,12 +5,15 @@ import (
 	"OttBot2/models"
 	"OttBot2/settings"
 	"OttBot2/telegram"
+	"math/rand"
+	"time"
 )
 
 func main() {
 	settings.LoadSettings()
 	models.MakeDB(settings.GetDBAddr())
 	metrics.StartUp()
+	rand.Seed(time.Now().UnixNano())
 
 	//Any channel commands
 	telegram.Register(`^\/ping`, 0, telegram.TestCmd)
@@ -18,11 +21,14 @@ func main() {
 
 	//Main channel commands
 	telegram.Register(`^\/help`, settings.GetChannelID(), telegram.MainChannelHelp)
+	telegram.Register(`^\/ask .+`, settings.GetChannelID(), telegram.MarkovTalkAbout)
 	telegram.Register(`.*furaffinity\.net\/(?:view|full)\/(\d*)`, settings.GetChannelID(), telegram.GetFARating)
 	telegram.Register(`.*furrynetwork\.com/.*\?viewId=(\d*)`, settings.GetChannelID(), telegram.GetFNRating)
 	telegram.Register(`.*e621\.net/post/show/(\d*)`, settings.GetChannelID(), telegram.GetE621IDRating)
 	telegram.Register(`.*static1\.e621\.net/data/../../(.+?)\.`, settings.GetChannelID(), telegram.GetE621MD5Rating)
+	telegram.Register(`.* c/d$`, settings.GetChannelID(), telegram.YesOrNo)
 	telegram.Register(`.*`, settings.GetChannelID(), telegram.HandleUsers)
+	telegram.Register(`.*`, settings.GetChannelID(), telegram.HandleMarkov)
 
 	//Control channel commands
 	telegram.Register(`^\/help`, settings.GetControlID(), telegram.ControlChannelHelp)
@@ -32,6 +38,7 @@ func main() {
 	telegram.Register(`^\/warn \d+ .+`, settings.GetControlID(), telegram.WarnUserByID)
 	telegram.Register(`^\/find .+`, settings.GetControlID(), telegram.LookupAlias)
 	telegram.Register(`^\/status`, settings.GetControlID(), telegram.GetBotStatus)
+	telegram.Register(`^\/count`, settings.GetControlID(), telegram.MarkovCount)
 
 	//Callbacks
 	telegram.RegisterCallback(`^\/togglemods \d+`, telegram.ToggleMods)
@@ -41,8 +48,7 @@ func main() {
 	telegram.RegisterCallback(`^\/callbackinfo \d+`, telegram.CallbackInfo)
 	telegram.RegisterCallback(`^\/preconfirmban \d+`, telegram.PreConfirmBan)
 	telegram.RegisterCallback(`^\/confirmban \d+`, telegram.ConfirmBan)
+	telegram.RegisterCallback(`^\/togglemarkov \d+`, telegram.ToggleMarkov)
 
-	telegram.RegisterNewMember(settings.GetChannelID(), telegram.HandleNewMember)
-	telegram.RegisterLeftMember(settings.GetChannelID(), telegram.HandleLeftMember)
 	telegram.InitBot(settings.GetBotToken())
 }
