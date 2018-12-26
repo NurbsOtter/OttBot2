@@ -4,10 +4,12 @@ import (
 	"OttBot2/metrics"
 	"OttBot2/models"
 	"OttBot2/settings"
-	"gopkg.in/telegram-bot-api.v4"
+	"fmt"
 	"math/rand"
 	"regexp"
 	"strconv"
+
+	tgbotapi "gopkg.in/telegram-bot-api.v4"
 )
 
 //Help response for main channel
@@ -20,6 +22,11 @@ func MainChannelHelp(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 func ControlChannelHelp(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	newMsg := tgbotapi.NewMessage(settings.GetControlID(), "/info <@username OR TelegramID> - Get information about a username\n/warn <@username OR TelegramID> <warning message> - Record a warning for a user\n/find <display name> - Find a user by their display name\n/status - Get bot status information\n/count - Get the number of chains in the markov database")
 	bot.Send(newMsg)
+}
+
+// DebugShowID helps in getting channel IDs.
+func DebugShowID(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	fmt.Println(upd.Message.Chat.ID)
 }
 
 //Handles the /mods command

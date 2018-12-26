@@ -4,16 +4,17 @@ import (
 	"OttBot2/models"
 	"OttBot2/settings"
 	"fmt"
-	"gopkg.in/telegram-bot-api.v4"
 	"strconv"
 	"strings"
+
+	tgbotapi "gopkg.in/telegram-bot-api.v4"
 )
 
 //Handles non-command messages to record user information/changes
 func HandleUsers(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	foundUser := models.ChatUserFromTGID(upd.Message.From.ID, upd.Message.From.UserName)
 	models.UpdateAliases(upd.Message.From.FirstName, upd.Message.From.LastName, foundUser.ID)
-	fmt.Println(foundUser)
+	//fmt.Println(foundUser) //Debug
 }
 
 //Get user information by telegram ID
@@ -48,7 +49,7 @@ func FindUserByUsername(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 			if user.UserName != "" {
 				outMsg += fmt.Sprintf("\nUsername: @%s", user.UserName)
 			}
-			outMsg += fmt.Sprintf("\nCurrent name: %s\nMod ping: %t\nMarkov ask: %t\n", curAlias.Name, user.PingAllowed, user.MarkovAskAllowed)
+			outMsg += fmt.Sprintf("\nCurrent name: %s\nMod ping: %t\n", curAlias.Name, user.PingAllowed)
 			newMsg := tgbotapi.NewMessage(settings.GetControlID(), outMsg)
 			newMsg.ReplyMarkup = MakeUserInfoInlineKeyboard(user.ID)
 			bot.Send(newMsg)
@@ -69,7 +70,7 @@ func GetUserInfoResponse(user *models.ChatUser) tgbotapi.MessageConfig {
 		if user.UserName != "" {
 			outMsg += fmt.Sprintf("\nUsername: @%s", user.UserName)
 		}
-		outMsg += fmt.Sprintf("\nCurrent name: %s\nMod ping: %t\nMarkov ask: %t\n", curAlias.Name, user.PingAllowed, user.MarkovAskAllowed)
+		outMsg += fmt.Sprintf("\nCurrent name: %s\nMod ping: %t\n", curAlias.Name, user.PingAllowed)
 		newMsg := tgbotapi.NewMessage(settings.GetControlID(), outMsg)
 		newMsg.ReplyMarkup = MakeUserInfoInlineKeyboard(user.ID)
 		return newMsg
@@ -83,54 +84,51 @@ func GetUserInfoResponse(user *models.ChatUser) tgbotapi.MessageConfig {
 func MakeUserInfoInlineKeyboard(userId int64) tgbotapi.InlineKeyboardMarkup {
 	warnCmd := fmt.Sprintf("/getwarnings %d", userId)
 	warnButt := tgbotapi.NewInlineKeyboardButtonData("View warnings", warnCmd)
-	aliasCmd := fmt.Sprintf("/getaliases %d", userId)
+	aliasCmd := fmt.Sprintf("/getaliases %d 0", userId)
 	aliasButt := tgbotapi.NewInlineKeyboardButtonData("View aliases", aliasCmd)
 	modsCmd := fmt.Sprintf("/togglemods %d", userId)
 	modsButt := tgbotapi.NewInlineKeyboardButtonData("Toggle /mods", modsCmd)
-	markovCmd := fmt.Sprintf("/togglemarkov %d", userId)
-	markovButt := tgbotapi.NewInlineKeyboardButtonData("Toggle /ask", markovCmd)
 	banCmd := fmt.Sprintf("/ban %d", userId)
 	banButt := tgbotapi.NewInlineKeyboardButtonData("Ban user", banCmd)
 	keyboardRow1 := tgbotapi.NewInlineKeyboardRow(warnButt, aliasButt)
-	keyboardRow2 := tgbotapi.NewInlineKeyboardRow(modsButt, markovButt)
-	keyboardRow3 := tgbotapi.NewInlineKeyboardRow(banButt)
-	return tgbotapi.NewInlineKeyboardMarkup(keyboardRow1, keyboardRow2, keyboardRow3)
+	keyboardRow2 := tgbotapi.NewInlineKeyboardRow(modsButt, banButt)
+	return tgbotapi.NewInlineKeyboardMarkup(keyboardRow1, keyboardRow2)
 }
 
 //Helper method to generate the buttons for an info request after view warnings button is pressed
 func MakeUserInfoInlineKeyboardRefreshWarnButton(userId int64) tgbotapi.InlineKeyboardMarkup {
 	warnCmd := fmt.Sprintf("/getwarnings %d", userId)
 	warnButt := tgbotapi.NewInlineKeyboardButtonData("Refresh warnings", warnCmd)
-	aliasCmd := fmt.Sprintf("/getaliases %d", userId)
+	aliasCmd := fmt.Sprintf("/getaliases %d 0", userId)
 	aliasButt := tgbotapi.NewInlineKeyboardButtonData("View aliases", aliasCmd)
 	modsCmd := fmt.Sprintf("/togglemods %d", userId)
 	modsButt := tgbotapi.NewInlineKeyboardButtonData("Toggle /mods", modsCmd)
-	markovCmd := fmt.Sprintf("/togglemarkov %d", userId)
-	markovButt := tgbotapi.NewInlineKeyboardButtonData("Toggle /ask", markovCmd)
 	banCmd := fmt.Sprintf("/ban %d", userId)
 	banButt := tgbotapi.NewInlineKeyboardButtonData("Ban user", banCmd)
 	keyboardRow1 := tgbotapi.NewInlineKeyboardRow(warnButt, aliasButt)
-	keyboardRow2 := tgbotapi.NewInlineKeyboardRow(modsButt, markovButt)
-	keyboardRow3 := tgbotapi.NewInlineKeyboardRow(banButt)
-	return tgbotapi.NewInlineKeyboardMarkup(keyboardRow1, keyboardRow2, keyboardRow3)
+	keyboardRow2 := tgbotapi.NewInlineKeyboardRow(modsButt, banButt)
+	return tgbotapi.NewInlineKeyboardMarkup(keyboardRow1, keyboardRow2)
 }
 
 //Helper method to generate the buttons for an info request after view aliases button is pressed
-func MakeUserInfoInlineKeyboardRefreshAliasButton(userId int64) tgbotapi.InlineKeyboardMarkup {
+func MakeUserInfoInlineKeyboardRefreshAliasButton(userId int64, curAliasPage int64, aliasPagesTotal int64) tgbotapi.InlineKeyboardMarkup {
 	warnCmd := fmt.Sprintf("/getwarnings %d", userId)
 	warnButt := tgbotapi.NewInlineKeyboardButtonData("View warnings", warnCmd)
-	aliasCmd := fmt.Sprintf("/getaliases %d", userId)
-	aliasButt := tgbotapi.NewInlineKeyboardButtonData("Refresh aliases", aliasCmd)
+	var aliasButt tgbotapi.InlineKeyboardButton
+	if curAliasPage == aliasPagesTotal-1 || aliasPagesTotal == 0 {
+		aliasCmd := fmt.Sprintf("/getaliases %d 0", userId)
+		aliasButt = tgbotapi.NewInlineKeyboardButtonData("Refresh aliases", aliasCmd)
+	} else {
+		aliasCmd := fmt.Sprintf("/getaliases %d %d", userId, curAliasPage+1)
+		aliasButt = tgbotapi.NewInlineKeyboardButtonData("Next Page", aliasCmd)
+	}
 	modsCmd := fmt.Sprintf("/togglemods %d", userId)
 	modsButt := tgbotapi.NewInlineKeyboardButtonData("Toggle /mods", modsCmd)
-	markovCmd := fmt.Sprintf("/togglemarkov %d", userId)
-	markovButt := tgbotapi.NewInlineKeyboardButtonData("Toggle /ask", markovCmd)
 	banCmd := fmt.Sprintf("/ban %d", userId)
 	banButt := tgbotapi.NewInlineKeyboardButtonData("Ban user", banCmd)
 	keyboardRow1 := tgbotapi.NewInlineKeyboardRow(warnButt, aliasButt)
-	keyboardRow2 := tgbotapi.NewInlineKeyboardRow(modsButt, markovButt)
-	keyboardRow3 := tgbotapi.NewInlineKeyboardRow(banButt)
-	return tgbotapi.NewInlineKeyboardMarkup(keyboardRow1, keyboardRow2, keyboardRow3)
+	keyboardRow2 := tgbotapi.NewInlineKeyboardRow(modsButt, banButt)
+	return tgbotapi.NewInlineKeyboardMarkup(keyboardRow1, keyboardRow2)
 }
 
 //Callback handler to update a get user info response to add warnings for the user
@@ -192,8 +190,11 @@ func CallbackInfo(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 //Callback handler to update a get user info response to add all known user aliases
 func DisplayAliases(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	var userIdStr string
+	var curPage int64
 	if upd.Message == nil {
-		userIdStr = upd.CallbackQuery.Data[11:]
+		splitString := strings.Split(upd.CallbackQuery.Data, " ")
+		userIdStr = splitString[1]
+		curPage, _ = strconv.ParseInt(splitString[2], 10, 32)
 		config := tgbotapi.NewCallback(upd.CallbackQuery.ID, "") //We don't need this so get it outta da way.
 		bot.AnswerCallbackQuery(config)
 	} else {
@@ -210,14 +211,21 @@ func DisplayAliases(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	aliases := models.GetAliases(chatUser)
 	if len(aliases) > 0 {
 		outmsg += "\nKnown aliases:"
-		for _, alias := range aliases {
-			outmsg += "\n" + alias.Name
+		if len(aliases) <= 10 {
+			for _, alias := range aliases {
+				outmsg += "\n" + alias.Name
+			}
+		} else {
+			page := aliases[curPage*5:]
+			for _, alias := range page[:5] {
+				outmsg += "\n" + alias.Name
+			}
 		}
 	} else {
 		outmsg += "\n No Aliases found"
 	}
 	editMsg := tgbotapi.NewEditMessageText(upd.CallbackQuery.Message.Chat.ID, upd.CallbackQuery.Message.MessageID, outmsg)
-	inlineKeyboard := MakeUserInfoInlineKeyboardRefreshAliasButton(chatUser.ID)
+	inlineKeyboard := MakeUserInfoInlineKeyboardRefreshAliasButton(chatUser.ID, curPage, int64(len(aliases)/5))
 	editMsg.ReplyMarkup = &inlineKeyboard
 	bot.Send(editMsg)
 }
