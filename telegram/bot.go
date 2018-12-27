@@ -2,8 +2,9 @@ package telegram
 
 import (
 	"fmt"
-	"gopkg.in/telegram-bot-api.v4"
 	"regexp"
+
+	tgbotapi "gopkg.in/telegram-bot-api.v4"
 )
 
 var commands []*BotCommand
@@ -93,6 +94,8 @@ func InitBot(botToken string) {
 			//config := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
 			//fmt.Println(update.CallbackQuery.Data)
 			//bot.AnswerCallbackQuery(config)
+		} else if update.ChannelPost != nil {
+			fmt.Println(update.ChannelPost.Chat.ID)
 		} else {
 			continue
 		}

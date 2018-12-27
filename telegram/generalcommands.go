@@ -33,7 +33,7 @@ func DebugShowID(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 func SummonMods(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	user := models.ChatUserFromTGID(upd.Message.From.ID, upd.Message.From.UserName)
 	if user.PingAllowed {
-		newFwd := tgbotapi.NewForward(settings.GetControlID(), upd.Message.Chat.ID, upd.Message.MessageID)
+		newFwd := tgbotapi.NewForward(settings.GetAnnounceChannel(), upd.Message.Chat.ID, upd.Message.MessageID)
 		bot.Send(newFwd)
 		newMsg := tgbotapi.NewMessage(upd.Message.Chat.ID, "Summoning mods!")
 		bot.Send(newMsg)

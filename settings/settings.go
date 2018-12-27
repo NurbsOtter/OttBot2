@@ -6,12 +6,13 @@ import (
 )
 
 type Settings struct {
-	BotToken         string
-	ChannelID        int64
-	ControlChannelID int64
-	SQLConnectString string
-	RandomChance     int64
-	DatabaseTimeout  string
+	BotToken             string
+	ChannelID            int64
+	ControlChannelID     int64
+	SQLConnectString     string
+	RandomChance         int64
+	DatabaseTimeout      string
+	AdminAnnounceChannel int64
 }
 
 var settings Settings
@@ -43,4 +44,8 @@ func GetRandomChance() int64 {
 }
 func GetDatabaseTimeout() string {
 	return settings.DatabaseTimeout
+}
+
+func GetAnnounceChannel() int64 {
+	return settings.AdminAnnounceChannel
 }
