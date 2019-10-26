@@ -35,3 +35,6 @@ settings*.json
 
 /.idea*
 *.bat
+
+# Ignore compiled binary
+OttBot2
