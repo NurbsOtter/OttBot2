@@ -28,8 +28,8 @@ _testmain.go
 
 # External packages folder
 vendor/
-//OttBot2 Specific
-settings*.json
+# OttBot2 Specific
+settings.json 
 *.sublime-*
 *.db*
 

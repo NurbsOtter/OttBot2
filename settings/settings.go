@@ -6,13 +6,13 @@ import (
 )
 
 type Settings struct {
-	BotToken             string
-	ChannelID            int64
-	ControlChannelID     int64
-	SQLConnectString     string
-	RandomChance         int64
-	DatabaseTimeout      string
-	AdminAnnounceChannel int64
+	BotToken             string `json:"BotToken"`
+	ChannelID            int64  `json:"ChannelID"`
+	ControlChannelID     int64  `json:"ControlChannelID"`
+	SQLConnectString     string `json:"SQLConnectString"`
+	RandomChance         int64  `json:"RandomChance"`
+	DatabaseTimeout      string `json:"DatabaseTimeout"`
+	AdminAnnounceChannel int64  `json:"AdminAnnounceChannel"`
 }
 
 var settings Settings
@@ -23,6 +23,7 @@ func LoadSettings() {
 		panic(err)
 	}
 	settings = Settings{}
+
 	json.Unmarshal(data, &settings)
 
 }

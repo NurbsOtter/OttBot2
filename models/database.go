@@ -3,8 +3,9 @@ package models
 import (
 	"OttBot2/settings"
 	"database/sql"
-	_ "github.com/go-sql-driver/mysql"
 	"time"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 var db *sql.DB

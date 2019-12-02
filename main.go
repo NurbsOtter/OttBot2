@@ -21,11 +21,11 @@ func main() {
 
 	//Main channel commands
 	telegram.Register(`^\/help`, settings.GetChannelID(), telegram.MainChannelHelp)
-	telegram.Register(`.*furaffinity\.net\/(?:view|full)\/(\d*)`, settings.GetChannelID(), telegram.GetFARating)
-	telegram.Register(`.*furrynetwork\.com/.*\?viewId=(\d*)`, settings.GetChannelID(), telegram.GetFNRating)
-	telegram.Register(`.*e621\.net/post/show/(\d*)`, settings.GetChannelID(), telegram.GetE621IDRating)
-	telegram.Register(`.*static1\.e621\.net/data/../../(.+?)\.`, settings.GetChannelID(), telegram.GetE621MD5Rating)
-	telegram.Register(`.* c/d$`, settings.GetChannelID(), telegram.YesOrNo)
+	// telegram.Register(`.*furaffinity\.net\/(?:view|full)\/(\d*)`, settings.GetChannelID(), telegram.GetFARating)
+	// telegram.Register(`.*furrynetwork\.com/.*\?viewId=(\d*)`, settings.GetChannelID(), telegram.GetFNRating)
+	// telegram.Register(`.*e621\.net/post/show/(\d*)`, settings.GetChannelID(), telegram.GetE621IDRating)
+	// telegram.Register(`.*static1\.e621\.net/data/../../(.+?)\.`, settings.GetChannelID(), telegram.GetE621MD5Rating)
+	// telegram.Register(`.* c/d$`, settings.GetChannelID(), telegram.YesOrNo)
 	telegram.Register(`.*`, settings.GetChannelID(), telegram.HandleUsers)
 	//Debug command
 	telegram.Register(`.*`, 0, telegram.DebugShowID)
