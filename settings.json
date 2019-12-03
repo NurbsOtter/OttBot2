@@ -3,7 +3,6 @@
     "ChannelID": 0,
     "ControlChannelID": 0,
     "SQLConnectString": "<USER>:<PASSWORD>@/<DATABASE_NAME>?parseTime=true&collation=utf8mb4_unicode_ci",
-    "RandomChance": "",
     "DatabaseTimeout": "500ms",
     "AdminAnnounceChannel": 0
 }

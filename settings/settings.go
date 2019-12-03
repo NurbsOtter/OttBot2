@@ -10,7 +10,6 @@ type Settings struct {
 	ChannelID            int64  `json:"ChannelID"`
 	ControlChannelID     int64  `json:"ControlChannelID"`
 	SQLConnectString     string `json:"SQLConnectString"`
-	RandomChance         int64  `json:"RandomChance"`
 	DatabaseTimeout      string `json:"DatabaseTimeout"`
 	AdminAnnounceChannel int64  `json:"AdminAnnounceChannel"`
 }
@@ -39,9 +38,6 @@ func GetControlID() int64 {
 }
 func GetDBAddr() string {
 	return settings.SQLConnectString
-}
-func GetRandomChance() int64 {
-	return settings.RandomChance
 }
 func GetDatabaseTimeout() string {
 	return settings.DatabaseTimeout
