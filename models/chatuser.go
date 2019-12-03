@@ -64,7 +64,7 @@ func ChatUserFromTGID(tgID int, userName string) *ChatUser {
 	return foundUser
 }
 func ChatUserFromTGIDNoUpd(tgID int) *ChatUser {
-	stmt, err := db.Prepare("SELECT id,userName,tgID,pingAllowed,MarkovAskAllowed FROM chatUser WHERE tgID = ?")
+	stmt, err := db.Prepare("SELECT id,userName,tgID,pingAllowed FROM chatUser WHERE tgID = ?")
 	if err != nil {
 		panic(err)
 	}
