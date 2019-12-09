@@ -134,18 +134,22 @@ func MakeUserInfoInlineKeyboardRefreshAliasButton(userId int64, curAliasPage int
 //Callback handler to update a get user info response to add warnings for the user
 func DisplayWarnings(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	var userIdStr string
+
+	// Check to see if this is indeed an appropriate CallbackQuery
 	if upd.Message == nil {
-		userIdStr = upd.CallbackQuery.Data[12:]
-		config := tgbotapi.NewCallback(upd.CallbackQuery.ID, "") //We don't need this so get it outta da way.
-		bot.AnswerCallbackQuery(config)
+		userIdStr = strings.Fields(upd.CallbackQuery.Data)[1]
 	} else {
+		// TODO: Remove these?
 		return
 	}
-	userIdStr = strings.Trim(userIdStr, " ")
+
+	// Parse the user ID from the InlineKeyboard's CallbackQuery data
 	userId, err := strconv.ParseInt(userIdStr, 10, 64)
 	if err != nil {
-		panic(err)
+		LogCallback(upd, bot, err.Error())
+		return
 	}
+
 	chatUser := models.ChatUserFromID(userId)
 	infoMessage := GetUserInfoResponse(chatUser)
 	outmsg := infoMessage.Text
@@ -156,12 +160,13 @@ func DisplayWarnings(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 			outmsg += "\n" + warn.WarningText
 		}
 	} else {
-		outmsg += "\n No warnings found"
+		outmsg += "\n No warnings found."
 	}
 	editMsg := tgbotapi.NewEditMessageText(upd.CallbackQuery.Message.Chat.ID, upd.CallbackQuery.Message.MessageID, outmsg)
 	inlineKeyboard := MakeUserInfoInlineKeyboardRefreshWarnButton(chatUser.ID)
 	editMsg.ReplyMarkup = &inlineKeyboard
 	bot.Send(editMsg)
+	LogCallback(upd, bot, "")
 }
 
 //Callback handler to update a find by alias request after a user button is clicked

@@ -70,6 +70,13 @@ func ProcessCallback(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		}
 	}
 }
+
+func LogCallback(upd tgbotapi.Update, bot *tgbotapi.BotAPI, text string) {
+	callback := tgbotapi.NewCallback(upd.CallbackQuery.ID, text)
+	bot.AnswerCallbackQuery(callback)
+	fmt.Printf("> Callback Answered: %s\n\tFrom: %d %s\n\tMessage: %s", upd.CallbackQuery.Data, upd.CallbackQuery.From.ID, upd.CallbackQuery.From.String(), callback.Text)
+}
+
 func InitBot(botToken string) {
 	bot, err := tgbotapi.NewBotAPI(botToken)
 	if err != nil {
@@ -86,14 +93,10 @@ func InitBot(botToken string) {
 		if update.Message != nil {
 			outLog := fmt.Sprintf("Message: %s %s>%s", update.Message.From.FirstName, update.Message.From.LastName, update.Message.Text)
 			fmt.Println(outLog)
-			//fmt.Println(update.Message.Chat.ID)
 			ProcessMessage(update, bot)
 		} else if update.CallbackQuery != nil {
 			fmt.Println("Callback handled: " + update.CallbackQuery.Data)
 			ProcessCallback(update, bot)
-			//config := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
-			//fmt.Println(update.CallbackQuery.Data)
-			//bot.AnswerCallbackQuery(config)
 		} else if update.ChannelPost != nil {
 			fmt.Println(update.ChannelPost.Chat.ID)
 		} else {
