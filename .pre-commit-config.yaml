@@ -1,0 +1,18 @@
+repos:
+    - repo: https://github.com/pre-commit/pre-commit-hooks
+      rev: v2.3.0
+      hooks:
+        - id: trailing-whitespace
+        - id: end-of-file-fixer
+        - id: check-merge-conflict
+
+    - repo: git@github.com:gruntwork-io/pre-commit.git
+      rev: v0.0.9
+      hooks:
+        - id: goimports
+        - id: shellcheck
+
+    - repo: git@github.com:golangci/golangci-lint.git
+      rev: v1.21.0
+      hooks:
+        - id: golangci-lint

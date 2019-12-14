@@ -29,7 +29,8 @@ _testmain.go
 # External packages folder
 vendor/
 # OttBot2 Specific
-settings.json 
+settings.json
+settings_backup.txt
 *.sublime-*
 *.db*
 
