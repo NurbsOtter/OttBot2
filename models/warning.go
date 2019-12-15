@@ -2,7 +2,6 @@ package models
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 )
 
@@ -13,22 +12,10 @@ type Warning struct {
 	WarnDate    time.Time
 }
 
-func AddWarningToUsername(userName string, warnText string) {
-	user := SearchUserByUsername(userName)
-	fmt.Println(userName)
-	if user == nil {
-		fmt.Println("No luck")
-		return
-	}
-	stmt, err := db.Prepare("INSERT INTO warning(userID,warningText,warnDate) VALUES(?,?,?)")
-	if err != nil {
-		panic(err)
-	}
-	stmt.Exec(user.ID, warnText, time.Now())
-}
 func AddWarningToID(userID int64, warnText string) {
 	db.Exec("INSERT INTO warning(userID,warningText,warnDate) VALUES(?,?,?)", userID, warnText, time.Now())
 }
+
 func GetUsersWarnings(userIn *ChatUser) []Warning {
 	stmt, err := db.Prepare("SELECT warningText,warnDate FROM warning WHERE userID = ?")
 	if err != nil {

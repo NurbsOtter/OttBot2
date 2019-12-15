@@ -14,7 +14,6 @@ import (
 func HandleUsers(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	foundUser := models.ChatUserFromTGID(upd.Message.From.ID, upd.Message.From.UserName)
 	models.UpdateAliases(upd.Message.From.FirstName, upd.Message.From.LastName, foundUser.ID)
-	//fmt.Println(foundUser) //Debug
 }
 
 //Get user information by telegram ID
@@ -146,7 +145,7 @@ func DisplayWarnings(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	// Parse the user ID from the InlineKeyboard's CallbackQuery data
 	userId, err := strconv.ParseInt(userIdStr, 10, 64)
 	if err != nil {
-		LogCallback(upd, bot, err.Error())
+		AnswerCallback(upd, bot, err.Error())
 		return
 	}
 
@@ -166,7 +165,7 @@ func DisplayWarnings(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	inlineKeyboard := MakeUserInfoInlineKeyboardRefreshWarnButton(chatUser.ID)
 	editMsg.ReplyMarkup = &inlineKeyboard
 	bot.Send(editMsg)
-	LogCallback(upd, bot, "")
+	AnswerCallback(upd, bot, "")
 }
 
 //Callback handler to update a find by alias request after a user button is clicked

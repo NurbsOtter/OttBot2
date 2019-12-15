@@ -16,15 +16,15 @@ type Settings struct {
 
 var settings Settings
 
-func LoadSettings() {
+func LoadSettings() error {
 	data, err := ioutil.ReadFile("./settings.json")
 	if err != nil {
-		panic(err)
+		return err
 	}
 	settings = Settings{}
 
 	json.Unmarshal(data, &settings)
-
+	return nil
 }
 
 func GetBotToken() string {

@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"fmt"
+	"log"
 	"regexp"
 
 	tgbotapi "gopkg.in/telegram-bot-api.v4"
@@ -9,8 +10,6 @@ import (
 
 var commands []*BotCommand
 var callbacks []*BotCommand
-var newmembercommands []*MemberCommand
-var leftmembercommands []*MemberCommand
 
 type BotCommand struct {
 	MatchCmd   *regexp.Regexp
@@ -18,13 +17,8 @@ type BotCommand struct {
 	HandleFunc func(tgbotapi.Update, *tgbotapi.BotAPI)
 }
 
-type MemberCommand struct {
-	Chan       int64
-	HandleFunc func(tgbotapi.Update, *tgbotapi.BotAPI)
-}
-
 func TestCmd(updateIn tgbotapi.Update, botIn *tgbotapi.BotAPI) {
-	c := tgbotapi.NewMessage(updateIn.Message.Chat.ID, "Butts")
+	c := tgbotapi.NewMessage(updateIn.Message.Chat.ID, "Pong")
 	botIn.Send(c)
 }
 func Register(regexIn string, chanIn int64, handleFunc func(tgbotapi.Update, *tgbotapi.BotAPI)) {
@@ -48,6 +42,7 @@ func RegisterCallback(regexIn string, handleFunc func(tgbotapi.Update, *tgbotapi
 }
 func ProcessMessage(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	message := upd.Message.Text
+	LogMessage(upd)
 	if message == "" {
 		return
 	}
@@ -71,31 +66,47 @@ func ProcessCallback(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	}
 }
 
-func LogCallback(upd tgbotapi.Update, bot *tgbotapi.BotAPI, text string) {
+// Answers the callback query made in the provided update. Note: If text is not an empty string, it will be displayed to the user who initiated the callback query.
+func AnswerCallback(upd tgbotapi.Update, bot *tgbotapi.BotAPI, text string) {
 	callback := tgbotapi.NewCallback(upd.CallbackQuery.ID, text)
 	bot.AnswerCallbackQuery(callback)
-	fmt.Printf("> Callback Answered: %s\n\tFrom: %d %s\n\tMessage: %s", upd.CallbackQuery.Data, upd.CallbackQuery.From.ID, upd.CallbackQuery.From.String(), callback.Text)
+	LogCallback(upd, callback)
+}
+
+func LogCallback(upd tgbotapi.Update, callback tgbotapi.CallbackConfig) {
+	if callback.Text != "" {
+		log.Printf("Callback: %s\nFrom: %s %d\nText: %s", upd.CallbackQuery.Data, upd.CallbackQuery.From.String(), upd.CallbackQuery.From.ID, callback.Text)
+	} else {
+		log.Printf("Callback: %s\nFrom: %s %d", upd.CallbackQuery.Data, upd.CallbackQuery.From.String(), upd.CallbackQuery.From.ID)
+	}
+}
+
+func LogMessage(upd tgbotapi.Update) {
+	log.Printf("Message: %s\nFrom: %s %d", upd.Message.Text, upd.Message.From.String(), upd.Message.From.ID)
 }
 
 func InitBot(botToken string) {
 	bot, err := tgbotapi.NewBotAPI(botToken)
 	if err != nil {
-		panic(err)
+		log.Fatal("Failed to establish connection to bot with provided API token.")
 	}
+
 	bot.Debug = false
+
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 	updates, err := bot.GetUpdatesChan(u)
 	if err != nil {
-		panic(err)
+		log.Fatal("Failed to retrieve updates.")
+		return
 	}
+
+	log.Print("Bot started successfully!")
+
 	for update := range updates {
 		if update.Message != nil {
-			outLog := fmt.Sprintf("Message: %s %s>%s", update.Message.From.FirstName, update.Message.From.LastName, update.Message.Text)
-			fmt.Println(outLog)
 			ProcessMessage(update, bot)
 		} else if update.CallbackQuery != nil {
-			fmt.Println("Callback handled: " + update.CallbackQuery.Data)
 			ProcessCallback(update, bot)
 		} else if update.ChannelPost != nil {
 			fmt.Println(update.ChannelPost.Chat.ID)

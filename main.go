@@ -5,12 +5,17 @@ import (
 	"OttBot2/models"
 	"OttBot2/settings"
 	"OttBot2/telegram"
+	"log"
 	"math/rand"
 	"time"
 )
 
 func main() {
-	settings.LoadSettings()
+	err := settings.LoadSettings()
+	if err != nil {
+		log.Fatal("Failed to load settings.")
+	}
+
 	models.MakeDB(settings.GetDBAddr())
 	metrics.StartUp()
 	rand.Seed(time.Now().UnixNano())
@@ -22,8 +27,6 @@ func main() {
 	//Main channel commands
 	telegram.Register(`^\/help`, settings.GetChannelID(), telegram.MainChannelHelp)
 	telegram.Register(`.*`, settings.GetChannelID(), telegram.HandleUsers)
-	//Debug command
-	telegram.Register(`.*`, 0, telegram.DebugShowID)
 
 	//Control channel commands
 	telegram.Register(`^\/help`, settings.GetControlID(), telegram.ControlChannelHelp)
