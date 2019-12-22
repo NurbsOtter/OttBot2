@@ -24,7 +24,10 @@ func ControlChannelHelp(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 
 //Handles the /mods command
 func SummonMods(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
-	user := models.ChatUserFromTGID(upd.Message.From.ID, upd.Message.From.UserName)
+	user, err := models.ChatUserFromTGID(upd.Message.From.ID, upd.Message.From.UserName)
+	if err != nil {
+
+	}
 	if user.PingAllowed {
 		newFwd := tgbotapi.NewForward(settings.GetAnnounceChannel(), upd.Message.Chat.ID, upd.Message.MessageID)
 		bot.Send(newFwd)

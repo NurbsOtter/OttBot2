@@ -66,13 +66,14 @@ func ProcessCallback(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	}
 }
 
-// Answers the callback query made in the provided update. Note: If text is not an empty string, it will be displayed to the user who initiated the callback query.
+// AnswerCallback answers the callback query made in the provided update. Note: If text is not an empty string, it will be displayed to the user who initiated the callback query.
 func AnswerCallback(upd tgbotapi.Update, bot *tgbotapi.BotAPI, text string) {
 	callback := tgbotapi.NewCallback(upd.CallbackQuery.ID, text)
 	bot.AnswerCallbackQuery(callback)
 	LogCallback(upd, callback)
 }
 
+// LogCallback logs information from a processed callback
 func LogCallback(upd tgbotapi.Update, callback tgbotapi.CallbackConfig) {
 	if callback.Text != "" {
 		log.Printf("Callback: %s\nFrom: %s %d\nText: %s", upd.CallbackQuery.Data, upd.CallbackQuery.From.String(), upd.CallbackQuery.From.ID, callback.Text)
@@ -81,8 +82,18 @@ func LogCallback(upd tgbotapi.Update, callback tgbotapi.CallbackConfig) {
 	}
 }
 
+// LogCallback logs information from a processed callback
 func LogMessage(upd tgbotapi.Update) {
 	log.Printf("Message: %s\nFrom: %s %d", upd.Message.Text, upd.Message.From.String(), upd.Message.From.ID)
+}
+
+// LogCommand logs information from a processed command
+func LogCommand(upd tgbotapi.Update, err error) {
+	if err != nil {
+		log.Printf("Command: %s\nFrom: %s %d\nError: %s", upd.Message.Command(), upd.Message.From.String(), upd.Message.From.ID, err.Error())
+	} else {
+		log.Printf("Command: %s\nFrom: %s %d\n", upd.Message.Command(), upd.Message.From.String(), upd.Message.From.ID)
+	}
 }
 
 func InitBot(botToken string) {

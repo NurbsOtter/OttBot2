@@ -12,8 +12,14 @@ import (
 
 //Handles non-command messages to record user information/changes
 func HandleUsers(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
-	foundUser := models.ChatUserFromTGID(upd.Message.From.ID, upd.Message.From.UserName)
-	models.UpdateAliases(upd.Message.From.FirstName, upd.Message.From.LastName, foundUser.ID)
+	foundUser, err := models.ChatUserFromTGID(upd.Message.From.ID, upd.Message.From.UserName)
+	if err != nil {
+		LogCommand(upd, err)
+	}
+
+	err = models.UpdateAliases(upd.Message.From.FirstName, upd.Message.From.LastName, foundUser.ID)
+	// This is disabled to avoid creating a duplicate log on every message, since this commmand essentially runs on every message
+	//LogCommand(upd, err)
 }
 
 //Get user information by telegram ID
@@ -22,15 +28,19 @@ func FindUserByUserID(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		userId := upd.Message.Text[5:]
 		userId = strings.Trim(userId, " ")
 		usrID, err := strconv.ParseInt(userId, 10, 64)
+
+		// Invalid ID
 		if err != nil {
 			newMsg := tgbotapi.NewMessage(upd.Message.Chat.ID, "Error parsing userID. Make sure it's an actual number!")
-			fmt.Println(userId)
-			fmt.Println(err)
 			bot.Send(newMsg)
+			LogCommand(upd, err)
 			return
 		}
-		user := models.ChatUserFromTGIDNoUpd(int(usrID))
+
+		// Valid ID
+		user, err := models.ChatUserFromTGIDNoUpd(int(usrID))
 		bot.Send(GetUserInfoResponse(user))
+		LogCommand(upd, err)
 	}
 }
 
@@ -39,32 +49,47 @@ func FindUserByUsername(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	if upd.Message.Chat.ID == settings.GetControlID() {
 		username := upd.Message.Text[7:]
 		username = strings.Trim(username, " ")
-		username = strings.ToLower(username) //Woo string processing
-		user := models.SearchUserByUsername(username)
-		if user != nil {
-			curAlias := models.GetLatestAliasFromUserID(user.ID)
-			fmt.Println(user)
-			outMsg := fmt.Sprintf("User ID: %d", user.TgID)
-			if user.UserName != "" {
-				outMsg += fmt.Sprintf("\nUsername: @%s", user.UserName)
-			}
-			outMsg += fmt.Sprintf("\nCurrent name: %s\nMod ping: %t\n", curAlias.Name, user.PingAllowed)
-			newMsg := tgbotapi.NewMessage(settings.GetControlID(), outMsg)
-			newMsg.ReplyMarkup = MakeUserInfoInlineKeyboard(user.ID)
-			bot.Send(newMsg)
-		} else {
-			newMsg := tgbotapi.NewMessage(settings.GetControlID(), "User not found.")
-			bot.Send(newMsg)
+		username = strings.ToLower(username)
+		user, err := models.SearchUserByUsername(username)
+
+		// Problem finding user
+		if err != nil {
 			bot.Send(GetUserInfoResponse(user))
+			LogCommand(upd, err)
+			return
 		}
+
+		curAlias, err := models.GetLatestAliasFromUserID(user.ID)
+		// Problem retrieving alias
+		if err != nil {
+			LogCommand(upd, err)
+			return
+		}
+
+		outMsg := fmt.Sprintf("User ID: %d", user.TgID)
+		if user.UserName != "" {
+			outMsg += fmt.Sprintf("\nUsername: @%s", user.UserName)
+		}
+		outMsg += fmt.Sprintf("\nCurrent name: %s\nMod ping: %t\n", curAlias.Name, user.PingAllowed)
+		newMsg := tgbotapi.NewMessage(settings.GetControlID(), outMsg)
+		newMsg.ReplyMarkup = MakeUserInfoInlineKeyboard(user.ID)
+		bot.Send(newMsg)
+		LogCommand(upd, err)
 	}
 }
 
 //Helper method to generate the response object for the info requests
 func GetUserInfoResponse(user *models.ChatUser) tgbotapi.MessageConfig {
+	// User found
 	if user != nil {
-		curAlias := models.GetLatestAliasFromUserID(user.ID)
-		fmt.Println(user)
+		curAlias, err := models.GetLatestAliasFromUserID(user.ID)
+		// Problem retrieving alias
+		if err != nil {
+			newMsg := tgbotapi.NewMessage(settings.GetControlID(), "Problem retrieving alias.")
+			return newMsg
+		}
+
+		// Alias found
 		outMsg := fmt.Sprintf("User ID: %d", user.TgID)
 		if user.UserName != "" {
 			outMsg += fmt.Sprintf("\nUsername: @%s", user.UserName)
@@ -73,7 +98,9 @@ func GetUserInfoResponse(user *models.ChatUser) tgbotapi.MessageConfig {
 		newMsg := tgbotapi.NewMessage(settings.GetControlID(), outMsg)
 		newMsg.ReplyMarkup = MakeUserInfoInlineKeyboard(user.ID)
 		return newMsg
+
 	} else {
+		// User not found
 		newMsg := tgbotapi.NewMessage(settings.GetControlID(), "User not found.")
 		return newMsg
 	}
@@ -134,11 +161,11 @@ func MakeUserInfoInlineKeyboardRefreshAliasButton(userId int64, curAliasPage int
 func DisplayWarnings(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	var userIdStr string
 
-	// Check to see if this is indeed an appropriate CallbackQuery
+	// Check to see if this is an appropriate CallbackQuery
 	if upd.Message == nil {
 		userIdStr = strings.Fields(upd.CallbackQuery.Data)[1]
 	} else {
-		// TODO: Remove these?
+		AnswerCallback(upd, bot, "")
 		return
 	}
 
@@ -149,10 +176,21 @@ func DisplayWarnings(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		return
 	}
 
-	chatUser := models.ChatUserFromID(userId)
+	chatUser, err := models.ChatUserFromID(userId)
+	if err != nil {
+		AnswerCallback(upd, bot, err.Error())
+		return
+	}
+
 	infoMessage := GetUserInfoResponse(chatUser)
 	outmsg := infoMessage.Text
-	warnings := models.GetUsersWarnings(chatUser)
+	warnings, err := models.GetUsersWarnings(chatUser)
+	if err != nil {
+		AnswerCallback(upd, bot, err.Error())
+		return
+	}
+
+	// Append all found warnings
 	if len(warnings) > 0 {
 		outmsg += "\nWarnings:"
 		for _, warn := range warnings {
@@ -164,6 +202,7 @@ func DisplayWarnings(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	editMsg := tgbotapi.NewEditMessageText(upd.CallbackQuery.Message.Chat.ID, upd.CallbackQuery.Message.MessageID, outmsg)
 	inlineKeyboard := MakeUserInfoInlineKeyboardRefreshWarnButton(chatUser.ID)
 	editMsg.ReplyMarkup = &inlineKeyboard
+
 	bot.Send(editMsg)
 	AnswerCallback(upd, bot, "")
 }
@@ -171,48 +210,78 @@ func DisplayWarnings(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 //Callback handler to update a find by alias request after a user button is clicked
 func CallbackInfo(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	var userIdStr string
+
+	// Check to see if this is an appropriate CallbackQuery
 	if upd.Message == nil {
 		userIdStr = upd.CallbackQuery.Data[13:]
-		config := tgbotapi.NewCallback(upd.CallbackQuery.ID, "") //We don't need this so get it outta da way.
-		bot.AnswerCallbackQuery(config)
 	} else {
+		AnswerCallback(upd, bot, "")
 		return
 	}
+
 	userIdStr = strings.Trim(userIdStr, " ")
 	userId, err := strconv.ParseInt(userIdStr, 10, 64)
+	// Unable to parse user id
 	if err != nil {
-		panic(err)
+		AnswerCallback(upd, bot, err.Error())
+		return
 	}
-	chatUser := models.ChatUserFromID(userId)
+
+	chatUser, err := models.ChatUserFromID(userId)
+	// Unable to retrieve chat user
+	if err != nil {
+		AnswerCallback(upd, bot, err.Error())
+		return
+	}
+
 	infoMessage := GetUserInfoResponse(chatUser)
 	editMsg := tgbotapi.NewEditMessageText(upd.CallbackQuery.Message.Chat.ID, upd.CallbackQuery.Message.MessageID, infoMessage.Text)
 	inlineKeyboard := MakeUserInfoInlineKeyboard(chatUser.ID)
 	editMsg.ReplyMarkup = &inlineKeyboard
+
 	bot.Send(editMsg)
+	AnswerCallback(upd, bot, "")
 }
 
 //Callback handler to update a get user info response to add all known user aliases
 func DisplayAliases(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	var userIdStr string
 	var curPage int64
+
+	// Check to see if this is an appropriate CallbackQuery
 	if upd.Message == nil {
 		splitString := strings.Split(upd.CallbackQuery.Data, " ")
 		userIdStr = splitString[1]
 		curPage, _ = strconv.ParseInt(splitString[2], 10, 32)
-		config := tgbotapi.NewCallback(upd.CallbackQuery.ID, "") //We don't need this so get it outta da way.
-		bot.AnswerCallbackQuery(config)
 	} else {
 		return
 	}
+
 	userIdStr = strings.Trim(userIdStr, " ")
 	userId, err := strconv.ParseInt(userIdStr, 10, 64)
+	// Unable to parse user id
 	if err != nil {
-		panic(err)
+		AnswerCallback(upd, bot, err.Error())
+		return
 	}
-	chatUser := models.ChatUserFromID(userId)
+
+	chatUser, err := models.ChatUserFromID(userId)
+	// Unable to retrieve chat user
+	if err != nil {
+		AnswerCallback(upd, bot, err.Error())
+		return
+	}
+
 	infoMessage := GetUserInfoResponse(chatUser)
 	outmsg := infoMessage.Text
-	aliases := models.GetAliases(chatUser)
+	aliases, err := models.GetAliases(chatUser)
+	// Unable to retrieve aliases
+	if err != nil {
+		AnswerCallback(upd, bot, err.Error())
+		return
+	}
+
+	// Append all found aliases
 	if len(aliases) > 0 {
 		outmsg += "\nKnown aliases:"
 		if len(aliases) <= 10 {
@@ -228,10 +297,13 @@ func DisplayAliases(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	} else {
 		outmsg += "\n No Aliases found"
 	}
+
 	editMsg := tgbotapi.NewEditMessageText(upd.CallbackQuery.Message.Chat.ID, upd.CallbackQuery.Message.MessageID, outmsg)
 	inlineKeyboard := MakeUserInfoInlineKeyboardRefreshAliasButton(chatUser.ID, curPage, int64(len(aliases)/5))
 	editMsg.ReplyMarkup = &inlineKeyboard
+
 	bot.Send(editMsg)
+	AnswerCallback(upd, bot, "")
 }
 
 //Warn a user by username
@@ -242,15 +314,21 @@ func WarnUserByUsername(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		userName := strings.Split(procString, " ")[0]
 		userName = strings.ToLower(userName)
 		message := procString[len(userName)+1:]
-		user := models.SearchUserByUsername(userName)
-		if user != nil {
-			models.AddWarningToID(user.ID, message)
-			newMess := tgbotapi.NewMessage(settings.GetControlID(), "Warned "+userName)
-			bot.Send(newMess)
-		} else {
+
+		user, err := models.SearchUserByUsername(userName)
+		// Unable to find user
+		if err != nil {
 			newMess := tgbotapi.NewMessage(settings.GetControlID(), "Could not find user")
 			bot.Send(newMess)
+			LogCommand(upd, err)
+			return
 		}
+
+		// Found user
+		models.AddWarningToID(user.ID, message)
+		newMess := tgbotapi.NewMessage(settings.GetControlID(), "Warned "+userName)
+		bot.Send(newMess)
+		LogCommand(upd, err)
 	}
 }
 
@@ -260,41 +338,71 @@ func WarnUserByID(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		procString := upd.Message.Text[6:] //Remove the /warn
 		procString = strings.TrimLeft(procString, " ")
 		userID, err := strconv.ParseInt(strings.Split(procString, " ")[0], 10, 64)
+
+		// Unable to parse user id
 		if err != nil {
-			fmt.Println("Failed to parse a tgid from /warn")
+			newMess := tgbotapi.NewMessage(settings.GetControlID(), "Invalid user id")
+			bot.Send(newMess)
+			LogCommand(upd, err)
 			return
 		}
-		chatUser := models.ChatUserFromTGIDNoUpd(int(userID))
-		var outMsg string
-		if chatUser == nil {
-			outMsg = fmt.Sprintf("Could not find TGID %d", userID)
-		} else {
-			models.AddWarningToID(chatUser.ID, procString[len(strings.Split(procString, " ")[0])+1:])
-			outMsg = fmt.Sprintf("Warned %d", userID)
+
+		// Problem finding user
+		chatUser, err := models.ChatUserFromTGIDNoUpd(int(userID))
+		// TODO: Rework ChatUserFromTGIDNoUpd function then clean up this function
+		if err != nil || chatUser == nil {
+			newMess := tgbotapi.NewMessage(settings.GetControlID(), "Could not find user")
+			bot.Send(newMess)
+			LogCommand(upd, err)
+			return
 		}
+
+		var outMsg string
+		err = models.AddWarningToID(chatUser.ID, procString[len(strings.Split(procString, " ")[0])+1:])
+		// Problem adding warning
+		if err != nil {
+			newMess := tgbotapi.NewMessage(settings.GetControlID(), "Encountered problem while trying to warn user")
+			bot.Send(newMess)
+			LogCommand(upd, err)
+			return
+		}
+
+		outMsg = fmt.Sprintf("Warned %d", userID)
 		newMess := tgbotapi.NewMessage(settings.GetControlID(), outMsg)
 		bot.Send(newMess)
+		LogCommand(upd, err)
 	}
 }
 
-//Look up users by their alias
+// LookupAlias finds a user even if only part of one of their aliases is provided
 func LookupAlias(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	if upd.Message.Chat.ID == settings.GetControlID() {
 		procString := upd.Message.Text[6:]
 		procString = strings.Trim(procString, " ")
-		foundAliases := models.LookupAlias(strings.ToLower(procString))
+
+		foundAliases, err := models.LookupAlias(strings.ToLower(procString))
+		// Problem finding aliases
+		if err != nil {
+			LogCommand(upd, err)
+			return
+		}
+
+		// Aliases not found
 		if len(foundAliases) == 0 {
 			outMsg := tgbotapi.NewMessage(settings.GetControlID(), "No Aliases found")
 			bot.Send(outMsg)
-		} else {
-			//No idea what kind of cap on responses this will run into in the future, seems to be max 8 buttons
-			outMsg := tgbotapi.NewMessage(settings.GetControlID(), "Found Users:")
-			if len(foundAliases) > 8 {
-				foundAliases = foundAliases[:8]
-			}
-			outMsg.ReplyMarkup = MakeAliasInlineKeyboard(foundAliases)
-			bot.Send(outMsg)
+			LogCommand(upd, err)
+			return
 		}
+
+		// Aliases found
+		outMsg := tgbotapi.NewMessage(settings.GetControlID(), "Found Users:")
+		if len(foundAliases) > 8 {
+			foundAliases = foundAliases[:8]
+		}
+		outMsg.ReplyMarkup = MakeAliasInlineKeyboard(foundAliases)
+		bot.Send(outMsg)
+		LogCommand(upd, err)
 	}
 }
 
@@ -302,7 +410,12 @@ func LookupAlias(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 func MakeAliasInlineKeyboard(aliases []models.ChatUser) tgbotapi.InlineKeyboardMarkup {
 	var aliasButtons []tgbotapi.InlineKeyboardButton
 	for _, alias := range aliases {
-		latestID := models.GetLatestAliasFromUserID(alias.ID)
+		latestID, err := models.GetLatestAliasFromUserID(alias.ID)
+		// Problem retrieving latest alias
+		if err != nil {
+			return tgbotapi.NewInlineKeyboardMarkup()
+		}
+
 		btnCmd := fmt.Sprintf("/callbackinfo %d", alias.ID)
 		newButt := tgbotapi.NewInlineKeyboardButtonData(latestID.Name, btnCmd)
 		aliasButtons = append(aliasButtons, newButt)
@@ -320,17 +433,26 @@ func PreBan(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	var userIdStr string
 	if upd.Message == nil {
 		userIdStr = upd.CallbackQuery.Data[4:]
-		config := tgbotapi.NewCallback(upd.CallbackQuery.ID, "") //We don't need this so get it outta da way.
-		bot.AnswerCallbackQuery(config)
 	} else {
+		AnswerCallback(upd, bot, "")
 		return
 	}
+
 	userIdStr = strings.Trim(userIdStr, " ")
 	userId, err := strconv.ParseInt(userIdStr, 10, 64)
+	// Unable to parse id
 	if err != nil {
-		panic(err)
+		AnswerCallback(upd, bot, err.Error())
+		return
 	}
-	foundUser := models.ChatUserFromID(userId)
+
+	foundUser, err := models.ChatUserFromID(userId)
+	// Unable to retrieve user
+	if err != nil {
+		AnswerCallback(upd, bot, err.Error())
+		return
+	}
+
 	infoMessage := GetUserInfoResponse(foundUser)
 	outMsg := infoMessage.Text
 	outMsg += "\nDo you want to ban this user?"
@@ -338,6 +460,12 @@ func PreBan(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	inlineKeyboard := MakeBanInlineKeyboard(foundUser.ID)
 	editMsg.ReplyMarkup = &inlineKeyboard
 	bot.Send(editMsg)
+
+	if err != nil {
+		AnswerCallback(upd, bot, err.Error())
+	}
+
+	AnswerCallback(upd, bot, "")
 }
 
 //Helper method to generate the buttons for a pre ban request
@@ -357,24 +485,40 @@ func PreConfirmBan(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	var userIdStr string
 	if upd.Message == nil {
 		userIdStr = upd.CallbackQuery.Data[14:]
-		config := tgbotapi.NewCallback(upd.CallbackQuery.ID, "") //We don't need this so get it outta da way.
-		bot.AnswerCallbackQuery(config)
 	} else {
+		AnswerCallback(upd, bot, "")
 		return
 	}
+
 	userIdStr = strings.Trim(userIdStr, " ")
 	userId, err := strconv.ParseInt(userIdStr, 10, 64)
+	// Unable to parse user id
 	if err != nil {
-		panic(err)
+		AnswerCallback(upd, bot, err.Error())
+		return
 	}
-	foundUser := models.ChatUserFromID(userId)
+
+	foundUser, err := models.ChatUserFromID(userId)
+	// Unable to retrieve user
+	if err != nil {
+		AnswerCallback(upd, bot, err.Error())
+		return
+	}
+
 	infoMessage := GetUserInfoResponse(foundUser)
 	outMsg := infoMessage.Text
 	outMsg += "\nAre you ABSOLUTELY SURE you want to ban this user?"
 	editMsg := tgbotapi.NewEditMessageText(upd.CallbackQuery.Message.Chat.ID, upd.CallbackQuery.Message.MessageID, outMsg)
 	inlineKeyboard := MakeBanConfirmInlineKeyboard(userId)
 	editMsg.ReplyMarkup = &inlineKeyboard
+
 	bot.Send(editMsg)
+
+	if err != nil {
+		AnswerCallback(upd, bot, err.Error())
+	}
+
+	AnswerCallback(upd, bot, "")
 }
 
 //Helper method to generate the buttons for the final ban request
@@ -394,21 +538,36 @@ func ConfirmBan(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	var userIdStr string
 	if upd.Message == nil {
 		userIdStr = upd.CallbackQuery.Data[11:]
-		config := tgbotapi.NewCallback(upd.CallbackQuery.ID, "") //We don't need this so get it outta da way.
-		bot.AnswerCallbackQuery(config)
 	} else {
+		AnswerCallback(upd, bot, "")
 		return
 	}
+
 	userIdStr = strings.Trim(userIdStr, " ")
 	userId, err := strconv.ParseInt(userIdStr, 10, 64)
+	// Unable to parse user id
 	if err != nil {
-		panic(err)
+		AnswerCallback(upd, bot, err.Error())
+		return
 	}
-	foundUser := models.ChatUserFromID(userId)
+
+	foundUser, err := models.ChatUserFromID(userId)
+	// Unable to retrieve user
+	if err != nil {
+		AnswerCallback(upd, bot, err.Error())
+		return
+	}
+
 	banConfig := tgbotapi.KickChatMemberConfig{}
 	banConfig.ChatID = settings.GetChannelID()
 	banConfig.UserID = int(foundUser.TgID)
-	bot.KickChatMember(banConfig)
+	_, err = bot.KickChatMember(banConfig)
+	// Error kicking chat member
+	if err != nil {
+		AnswerCallback(upd, bot, err.Error())
+		return
+	}
+
 	infoMessage := GetUserInfoResponse(foundUser)
 	outMsg := infoMessage.Text
 	outMsg += "\nUser banned by "
@@ -419,7 +578,14 @@ func ConfirmBan(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	}
 	outMsg += " TGID: " + strconv.Itoa(upd.CallbackQuery.From.ID)
 	editMsg := tgbotapi.NewEditMessageText(upd.CallbackQuery.Message.Chat.ID, upd.CallbackQuery.Message.MessageID, outMsg)
+
 	bot.Send(editMsg)
+
+	if err != nil {
+		AnswerCallback(upd, bot, err.Error())
+	}
+
+	AnswerCallback(upd, bot, "")
 }
 
 //Handles toggling of a user's ability to use /mods
@@ -427,22 +593,44 @@ func ToggleMods(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	var userIdStr string
 	if upd.Message == nil {
 		userIdStr = upd.CallbackQuery.Data[12:]
-		config := tgbotapi.NewCallback(upd.CallbackQuery.ID, "") //We don't need this so get it outta da way.
-		bot.AnswerCallbackQuery(config)
 	} else {
+		AnswerCallback(upd, bot, "")
 		return
 	}
+
 	userIdStr = strings.Trim(userIdStr, " ")
 	userId, err := strconv.ParseInt(userIdStr, 10, 64)
+	// Unable to parse user id
 	if err != nil {
-		panic(err)
+		AnswerCallback(upd, bot, err.Error())
+		return
 	}
-	chatUser := models.ChatUserFromID(userId)
-	models.SetModPing(chatUser.ID, !chatUser.PingAllowed)
+
+	chatUser, err := models.ChatUserFromID(userId)
+	// Unable to retrieve user
+	if err != nil {
+		AnswerCallback(upd, bot, err.Error())
+		return
+	}
+
+	err = models.SetModPing(chatUser.ID, !chatUser.PingAllowed)
+	// Error setting mod ping
+	if err != nil {
+		AnswerCallback(upd, bot, err.Error())
+		return
+	}
+
 	chatUser.PingAllowed = !chatUser.PingAllowed
 	outMsg := GetUserInfoResponse(chatUser)
 	editMsg := tgbotapi.NewEditMessageText(upd.CallbackQuery.Message.Chat.ID, upd.CallbackQuery.Message.MessageID, outMsg.Text)
 	inlineKeyboard := MakeUserInfoInlineKeyboard(chatUser.ID)
 	editMsg.ReplyMarkup = &inlineKeyboard
+
 	bot.Send(editMsg)
+
+	if err != nil {
+		AnswerCallback(upd, bot, err.Error())
+	}
+
+	AnswerCallback(upd, bot, "")
 }

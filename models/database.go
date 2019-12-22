@@ -10,15 +10,19 @@ import (
 
 var db *sql.DB
 
-func MakeDB(dbConnectString string) {
+// MakeDB connects to a database based on the dbConnectString
+func MakeDB(dbConnectString string) error {
 	newDb, err := sql.Open("mysql", dbConnectString)
 	if err != nil {
-		panic(err)
+		return err
 	}
+
 	db = newDb
 	timeout, err := time.ParseDuration(settings.GetDatabaseTimeout())
 	if err != nil {
-		panic(err)
+		return err
 	}
+
 	db.SetConnMaxLifetime(timeout)
+	return nil
 }
