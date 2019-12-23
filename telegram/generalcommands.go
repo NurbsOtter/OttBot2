@@ -68,9 +68,6 @@ func SummonMods(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 func ResolveAlert(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	// Check to see if this is an appropriate CallbackQuery
 
-	fmt.Println("Made it!")
-	fmt.Println(upd.CallbackQuery.Data)
-
 	if upd.Message == nil {
 		modsCommandMsgID, err := strconv.Atoi(strings.Fields(upd.CallbackQuery.Data)[1])
 		if err != nil {
