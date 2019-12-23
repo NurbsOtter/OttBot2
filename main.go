@@ -45,6 +45,7 @@ func main() {
 	telegram.RegisterCallback(`^\/callbackinfo \d+`, telegram.CallbackInfo)
 	telegram.RegisterCallback(`^\/preconfirmban \d+`, telegram.PreConfirmBan)
 	telegram.RegisterCallback(`^\/confirmban \d+`, telegram.ConfirmBan)
+	telegram.RegisterCallback(`^\/resolvealert \d+`, telegram.ResolveAlert)
 
 	telegram.InitBot(settings.GetBotToken())
 }

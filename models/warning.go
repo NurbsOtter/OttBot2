@@ -7,26 +7,26 @@ import (
 
 type Warning struct {
 	ID          int64
-	UserID      int64
 	WarningText string
 	WarnDate    time.Time
+	TgID        int64
 }
 
 // AddWarningToId logs a new warning for a given user
-func AddWarningToID(userID int64, warnText string) error {
-	_, err := db.Exec("INSERT INTO warning(userID,warningText,warnDate) VALUES(?,?,?)", userID, warnText, time.Now())
+func AddWarningToID(tgID int64, warnText string) error {
+	_, err := db.Exec("INSERT INTO warning(warningText,warnDate,tgID) VALUES(?,?,?)", warnText, time.Now(), tgID)
 	return err
 }
 
 // GetUsersWarnings finds all warnings for a given user
 func GetUsersWarnings(userIn *ChatUser) ([]Warning, error) {
-	stmt, err := db.Prepare("SELECT warningText,warnDate FROM warning WHERE userID = ?")
+	stmt, err := db.Prepare("SELECT warningText,warnDate FROM warning WHERE tgID = ?")
 	if err != nil {
 		return nil, err
 	}
 
 	var outWarns []Warning
-	rows, err := stmt.Query(userIn.ID)
+	rows, err := stmt.Query(userIn.TgID)
 	// User not found
 	switch {
 	case err == sql.ErrNoRows:
