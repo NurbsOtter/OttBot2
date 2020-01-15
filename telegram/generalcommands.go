@@ -96,7 +96,7 @@ func ResolveAlert(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		}
 
 		// Deletes the alert message in the control channel
-		deleteControlAlertMsg := tgbotapi.NewDeleteMessage(settings.GetChannelID(), alertControlMsgID)
+		deleteControlAlertMsg := tgbotapi.NewDeleteMessage(settings.GetControlID(), alertControlMsgID)
 		_, err = bot.DeleteMessage(deleteControlAlertMsg)
 		if err != nil {
 			AnswerCallback(upd, bot, err.Error())
