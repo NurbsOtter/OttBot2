@@ -49,7 +49,7 @@ func SummonMods(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		sentAlertMainMsg, _ := bot.Send(newAlertMainMsg)
 
 		// Informs the control channel that moderators have been summoned
-		newAlertControlMsg := tgbotapi.NewMessage(settings.GetAnnounceChannel(), fmt.Sprintf("%s%s is requesting moderator assistance!", alertSenderPrefix, upd.Message.From.String()))
+		newAlertControlMsg := tgbotapi.NewMessage(settings.GetAnnounceChannel(), fmt.Sprintf("%s%s is requesting moderator assistance!\n%s", alertSenderPrefix, upd.Message.From.String(), upd.Message.Text))
 
 		// Adds buttons to view the alert message in the main channel and also to resolve the alert (deletes all messages associated with the alert)
 		viewAlertButt := tgbotapi.NewInlineKeyboardButtonURL("View Alert", fmt.Sprintf("https://t.me/%s/%d", upd.Message.Chat.UserName, upd.Message.MessageID))
@@ -81,25 +81,27 @@ func ResolveAlert(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 
 		alertControlMsgID := upd.CallbackQuery.Message.MessageID
 
-		// Deletes the /mods command
+		// Deletes the /mods command if it is in the main channel
 		deleteModsCommandMsg := tgbotapi.NewDeleteMessage(settings.GetChannelID(), modsCommandMsgID)
 		_, err = bot.DeleteMessage(deleteModsCommandMsg)
 		if err != nil {
-			AnswerCallback(upd, bot, "/mods command message could not be found")
+			// No callback here because PM's would trigger this
+			AnswerCallback(upd, bot, "")
 		}
 
-		// Deletes the alert message in the main channel
+		// Deletes the alert message if it is in the main channel
 		deleteAlertMainMsg := tgbotapi.NewDeleteMessage(settings.GetChannelID(), alertMainMsgID)
 		_, err = bot.DeleteMessage(deleteAlertMainMsg)
 		if err != nil {
-			AnswerCallback(upd, bot, "Main channel alert message could not be found")
+			// No callback here because PM's would trigger this
+			AnswerCallback(upd, bot, "")
 		}
 
 		// Deletes the alert message in the announce channel
 		deleteControlAlertMsg := tgbotapi.NewDeleteMessage(settings.GetAnnounceChannel(), alertControlMsgID)
 		_, err = bot.DeleteMessage(deleteControlAlertMsg)
 		if err != nil {
-			AnswerCallback(upd, bot, "Announce channel alert message could not be found")
+			AnswerCallback(upd, bot, err.Error())
 		}
 	}
 	AnswerCallback(upd, bot, "")
