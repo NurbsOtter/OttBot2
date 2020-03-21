@@ -49,7 +49,14 @@ func SummonMods(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		sentAlertMainMsg, _ := bot.Send(newAlertMainMsg)
 
 		// Informs the control channel that moderators have been summoned
-		newAlertControlMsg := tgbotapi.NewMessage(settings.GetAnnounceChannel(), fmt.Sprintf("%s%s is requesting moderator assistance!\n%s", alertSenderPrefix, upd.Message.From.String(), upd.Message.Text))
+		modsCmdMsgSlice := strings.SplitN(upd.Message.Text, " ", 2)
+		var modsCmdMsgText string
+		if len(modsCmdMsgSlice) == 2 {
+			modsCmdMsgText = modsCmdMsgSlice[1]
+		} else {
+			modsCmdMsgText = ""
+		}
+		newAlertControlMsg := tgbotapi.NewMessage(settings.GetAnnounceChannel(), fmt.Sprintf("%s%s is requesting moderator assistance!\n%s", alertSenderPrefix, upd.Message.From.String(), modsCmdMsgText))
 
 		// Adds buttons to view the alert message in the main channel and also to resolve the alert (deletes all messages associated with the alert)
 		viewAlertButt := tgbotapi.NewInlineKeyboardButtonURL("View Alert", fmt.Sprintf("https://t.me/%s/%d", upd.Message.Chat.UserName, upd.Message.MessageID))

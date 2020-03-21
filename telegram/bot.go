@@ -18,7 +18,7 @@ type BotCommand struct {
 }
 
 func TestCmd(updateIn tgbotapi.Update, botIn *tgbotapi.BotAPI) {
-	c := tgbotapi.NewMessage(updateIn.Message.Chat.ID, "Pong")
+	c := tgbotapi.NewMessage(updateIn.Message.Chat.ID, "Butts")
 	botIn.Send(c)
 }
 func Register(regexIn string, chanIn int64, handleFunc func(tgbotapi.Update, *tgbotapi.BotAPI)) {
