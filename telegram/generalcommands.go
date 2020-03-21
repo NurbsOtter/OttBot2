@@ -71,12 +71,12 @@ func ResolveAlert(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	if upd.Message == nil {
 		modsCommandMsgID, err := strconv.Atoi(strings.Fields(upd.CallbackQuery.Data)[1])
 		if err != nil {
-			AnswerCallback(upd, bot, err.Error())
+			AnswerCallback(upd, bot, "error 1")
 		}
 
 		alertMainMsgID, err := strconv.Atoi(strings.Fields(upd.CallbackQuery.Data)[2])
 		if err != nil {
-			AnswerCallback(upd, bot, err.Error())
+			AnswerCallback(upd, bot, "error 2")
 		}
 
 		alertControlMsgID := upd.CallbackQuery.Message.MessageID
@@ -85,21 +85,21 @@ func ResolveAlert(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		deleteModsCommandMsg := tgbotapi.NewDeleteMessage(settings.GetChannelID(), modsCommandMsgID)
 		_, err = bot.DeleteMessage(deleteModsCommandMsg)
 		if err != nil {
-			AnswerCallback(upd, bot, err.Error())
+			AnswerCallback(upd, bot, "error 3")
 		}
 
 		// Deletes the alert message in the main channel
 		deleteAlertMainMsg := tgbotapi.NewDeleteMessage(settings.GetChannelID(), alertMainMsgID)
 		_, err = bot.DeleteMessage(deleteAlertMainMsg)
 		if err != nil {
-			AnswerCallback(upd, bot, err.Error())
+			AnswerCallback(upd, bot, "error 4")
 		}
 
 		// Deletes the alert message in the control channel
 		deleteControlAlertMsg := tgbotapi.NewDeleteMessage(settings.GetControlID(), alertControlMsgID)
 		_, err = bot.DeleteMessage(deleteControlAlertMsg)
 		if err != nil {
-			AnswerCallback(upd, bot, err.Error())
+			AnswerCallback(upd, bot, "error 5")
 		}
 	}
 	AnswerCallback(upd, bot, "")

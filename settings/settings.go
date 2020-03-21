@@ -12,6 +12,7 @@ type Settings struct {
 	SQLConnectString     string `json:"SQLConnectString"`
 	DatabaseTimeout      string `json:"DatabaseTimeout"`
 	AdminAnnounceChannel int64  `json:"AdminAnnounceChannel"`
+	CombotID             int64  `json:CombotID`
 }
 
 var settings Settings
@@ -42,7 +43,9 @@ func GetDBAddr() string {
 func GetDatabaseTimeout() string {
 	return settings.DatabaseTimeout
 }
-
 func GetAnnounceChannel() int64 {
 	return settings.AdminAnnounceChannel
+}
+func GetCombotID() int64 {
+	return settings.CombotID
 }

@@ -17,6 +17,7 @@ func HandleUsers(upd tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		LogCommand(upd, err)
 	}
 
+	// TODO: Log this?
 	err = models.UpdateAliases(upd.Message.From.FirstName, upd.Message.From.LastName, foundUser.TgID)
 	// This is disabled to avoid creating a duplicate log on every message, since this commmand essentially runs on every message
 	//LogCommand(upd, err)
